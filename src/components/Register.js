@@ -2,7 +2,7 @@ import React, {useState} from "react";
 import axios from  'axios'
 import { useNavigate } from "react-router-dom";
 
-function Register()
+function Register({ setIsAuthenticated })
 {
     const [login, setLogin] = useState('');
     const [email, setEmail] = useState('');
@@ -22,12 +22,13 @@ function Register()
             });
 
             if(response.status === 200){
-                alert('Registration successful!');
-                navigate('/login');
+                localStorage.setItem('token', response.data.token);
+                setIsAuthenticated(true);
+                navigate('/user');
             }
         }catch(error){
-            console.error('Error response:', error.response);
-            setError(error.response?.date || 'Registration failed');
+            console.log(error)
+            setError(error.response.data?.message || 'Login failed');
         }
     };
 
