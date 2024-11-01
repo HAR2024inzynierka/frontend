@@ -30,7 +30,7 @@ function Login({setIsAuthenticated}){
 
     return (
         <div>
-            <h2>Login</h2>
+            <h2>Zaloguj się</h2>
             <form onSubmit={handleSubmit}>
                 <div>
                     <label>Email:</label>
@@ -42,7 +42,7 @@ function Login({setIsAuthenticated}){
                     />
                 </div>
                 <div>
-                    <label>Password:</label>
+                    <label>Hasło:</label>
                     <input
                         type="password"
                         value={password}
@@ -50,7 +50,7 @@ function Login({setIsAuthenticated}){
                         required
                     />
                 </div>
-                <button type="submit">Login</button>
+                <button type="submit">Zaloguj się</button>
                 {error && <p style={{ color: 'red' }}>{error}</p>}
             </form>
         </div>
