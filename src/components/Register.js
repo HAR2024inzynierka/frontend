@@ -34,10 +34,10 @@ function Register({ setIsAuthenticated })
 
     return (
         <div>
-            <h2>Register</h2>
+            <h2>Zarejestruj się</h2>
             <form onSubmit={handleSubmit}>
                 <div>
-                    <label>Login:</label>
+                    <label>Nazwa uytkownika:</label>
                     <input type="text" value={login} onChange={(e) => setLogin(e.target.value)} required />
                 </div>
                 <div>
@@ -45,10 +45,10 @@ function Register({ setIsAuthenticated })
                     <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                 </div>
                 <div>
-                    <label>Password:</label>
+                    <label>Hasło:</label>
                     <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                 </div>
-                <button type="submit">Register</button>
+                <button type="submit">Zarejestruj się</button>
                 {error && <p style={{ color: 'red' }}>{error}</p>}
             </form>
         </div>
