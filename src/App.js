@@ -4,6 +4,7 @@ import Register from './components/Register';
 import Login from './components/Login';
 import Home from './components/Home';
 import UserPage from './components/UserPage';
+import AdminDashboard from './components/AdminDashboard';
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -42,6 +43,10 @@ function App() {
                     <Route
                         path="/user"
                         element={isAuthenticated ? <UserPage /> : <Login setIsAuthenticated={setIsAuthenticated} />}
+                    />
+                    <Route
+                        path="/admin"
+                        element={<AdminDashboard />}
                     />
                     <Route path="/register" element={<Register setIsAuthenticated={setIsAuthenticated} />} />
                     <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
