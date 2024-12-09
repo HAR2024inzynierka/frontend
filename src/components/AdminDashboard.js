@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import styled from "styled-components";
 
-// Styled-components
 const Container = styled.div`
   padding: 20px;
 `;
@@ -72,7 +71,6 @@ const ModalContent = styled.div`
   width: 100%;
 `;
 
-// Component
 function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [workshops, setWorkshops] = useState([]);
@@ -130,40 +128,54 @@ function AdminDashboard() {
   }, [token]);
 
   // Add Workshop
-  const handleAddWorkshop = async () => {
+  const handleAddWorkshop = async (e) => {
+    if (e) e.preventDefault();
     try {
-      const response = await axios.post(
-        "http://localhost:5109/api/AutoRepairShop/workshops",
+      await axios.post(
+        "http://localhost:5109/api/admin/workshop",
         newWorkshop,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-
-      setWorkshops([...workshops, response.data]);
+  
+      const updatedWorkshops = await axios.get(
+        "http://localhost:5109/api/AutoRepairShop/workshops",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+  
+      setWorkshops(updatedWorkshops.data);
       setIsAddModalOpen(false);
       setNewWorkshop({ email: "", address: "", phoneNumber: "" });
+  
     } catch (err) {
       setError("Nie udało się dodać warsztatu.");
     }
   };
+  
 
   // Edit Workshop
-  const handleEditWorkshop = async () => {
+  const handleEditWorkshop = async (e) => {
+    if (e) e.preventDefault();
     try {
-      const response = await axios.put(
-        `http://localhost:5109/api/AutoRepairShop/workshops/${editingWorkshop.id}`,
+      await axios.put(
+        `http://localhost:5109/api/admin/${editingWorkshop.id}`,
         editingWorkshop,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
 
-      setWorkshops(
-        workshops.map((workshop) =>
-          workshop.id === editingWorkshop.id ? response.data : workshop
-        )
+      const updatedWorkshops = await axios.get(
+        "http://localhost:5109/api/AutoRepairShop/workshops",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
+
+      setWorkshops(updatedWorkshops.data);
       setEditingWorkshop(null);
     } catch (err) {
       setError("Nie udało się zaktualizować warsztatu.");
@@ -173,7 +185,7 @@ function AdminDashboard() {
   // Delete Workshop
   const handleDeleteWorkshop = async (id) => {
     try {
-      await axios.delete(`http://localhost:5109/api/AutoRepairShop/workshops/${id}`, {
+      await axios.delete(`http://localhost:5109/api/admin/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
