@@ -15,7 +15,7 @@ function Register({ setIsAuthenticated })
         setError('');
 
         try{
-            const response = await axios.post('http://localhost:5109/api/register/register', {
+            const response = await axios.post('http://localhost:5109/api/Register/register', {
                 login,
                 email,
                 password

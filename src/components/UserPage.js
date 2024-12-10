@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { jwtDecode } from "jwt-decode";
-import VehicleCard from "./VehicleCard";
-import styled from "styled-components";
-import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css"; // Import stylów kalendarza
-import UserEditForm from "./UserPage/UserEditForm";
-import UserInfoCard from "./UserPage/UserInfoCard";
-import CarForm from "./UserPage/CarForm";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
+import VehicleCard from './VehicleCard';
+import styled from 'styled-components';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';  // Import stylów kalendarza
+
 
 // Styled-components
 const ButtonContainer = styled.div`
@@ -16,8 +14,9 @@ const ButtonContainer = styled.div`
 `;
 
 const UserPageContainer = styled.div`
-  padding: 20px;
-`;
+  padding: 20px;`
+;
+
 const TopSection = styled.div`
   display: flex;
   justify-content: flex-start;
@@ -31,6 +30,21 @@ const WelcomeMessage = styled.h2`
   font-size: 24px;
   font-weight: bold;
   color: #01295f;
+`;
+
+const UserInfoCard = styled.div`
+  background: #f9f9f9;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-top: 20px;
+  margin-bottom: 20px;
+`;
+
+const UserInfoLabel = styled.p`
+  font-size: 16px;
+  color: #01295f;
+  margin: 10px 0;
 `;
 
 const EditButton = styled.button`
@@ -106,6 +120,10 @@ const CarsContainer = styled.div`
   flex-wrap: wrap;
   justify-content: flex-start;
   margin-top: 20px;
+`;
+
+const UserInfoValue = styled.span`
+  color: black;
 `;
 
 const CancelButton = styled(EditButton)`
@@ -210,27 +228,29 @@ const StyledCalendar = styled(Calendar)`
   font-size: 1.2em; // Powiększenie tekstu i elementów
 `;
 
+
+
+
 function UserPage() {
   const [user, setUser] = useState(null);
   const [cars, setCars] = useState([]);
   const [newCar, setNewCar] = useState({
-    brand: "",
-    model: "",
-    registrationNumber: "",
-    capacity: "",
-    power: "",
-    vin: "",
-    productionYear: "",
+    brand: '',
+    model: '',
+    registrationNumber: '',
+    capacity: '',
+    power: '',
+    vin: '',
+    productionYear: ''
   });
   const [showVehicles, setShowVehicles] = useState(false);
   const [editingUser, setEditingUser] = useState(false);
   const [editedUser, setEditedUser] = useState({
-    login: "",
-    email: "",
-    phone: "",
+    login: '',
+    email: '',
+    phone: ''
   });
   const [showForm, setShowForm] = useState(false);
-  const [showEditForm, setShowEditForm] = useState(false);
   const [addingNewCar, setAddingNewCar] = useState(true);
   const [iscancel, setIsCancel] = useState(false);
   const [error, setError] = useState(null);
@@ -239,8 +259,15 @@ function UserPage() {
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [appointments, setAppointments] = useState([]); // Przechowujemy wizyty
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(); // Wybrany dzień
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const token = localStorage.getItem("token");
+  
+
+
+
+  
+  const token = localStorage.getItem('token');
   const userId = token ? jwtDecode(token).nameid : null;
 
   const toggleForm = () => {
@@ -254,33 +281,24 @@ function UserPage() {
 
     const fetchUserData = async () => {
       try {
-        const [userResponse, carsResponse, appointmentsResponse] =
-          await Promise.all([
-            axios.get(`http://localhost:5109/api/user/${userId}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            }),
-            axios.get(`http://localhost:5109/api/user/${userId}/vehicles`, {
-              headers: { Authorization: `Bearer ${token}` },
-            }),
-            axios.get(`http://localhost:5109/api/user/${userId}/records`, {
-              headers: { Authorization: `Bearer ${token}` },
-            }), // Pobranie wizyt
-          ]);
+        const [userResponse, carsResponse, appointmentsResponse] = await Promise.all([
+          axios.get(`http://localhost:5109/api/user/${userId}`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`http://localhost:5109/api/user/${userId}/vehicles`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`http://localhost:5109/api/user/${userId}/records`, { headers: { Authorization: `Bearer ${token}` } }) // Pobranie wizyt
+
+        ]);
         setUser(userResponse.data);
         setCars(carsResponse.data);
         setAppointments(appointmentsResponse.data);
         setEditedUser({
           login: userResponse.data.login,
           email: userResponse.data.email,
-          phone: userResponse.data.phone || "Brak",
-        });
+          phone: userResponse.data.phone || 'Brak'
+        }, [user]);
 
         console.log("Appointments:", appointmentsResponse.data);
       } catch (error) {
-        console.error(
-          "Błąd przy pobieraniu danych użytkownika:",
-          error.response?.data || error.message
-        );
+        console.error("Błąd przy pobieraniu danych użytkownika:", error.response?.data || error.message);
       }
     };
 
@@ -288,8 +306,34 @@ function UserPage() {
   }, [userId, token]);
 
   const handleVehicleClick = (car) => {
-    setSelectedVehicle(car); // Store the clicked vehicle's details
+    setSelectedVehicle(car);  // Store the clicked vehicle's details
   };
+
+  // Funkcja do pobierania wizyt z API na dany dzień
+  const fetchAppointments = async (date) => {
+    try {
+      const response = await axios.get(`http://localhost:5109/api/appointments?date=${date}`);
+      setAppointments(response.data); // Zapisz wizyty w stanie
+    } catch (error) {
+      console.error('Błąd przy pobieraniu wizyt:', error);
+    }
+  };
+
+  // Wywołanie pobierania wizyt za każdym razem, gdy zmienia się wybrany dzień
+  useEffect(() => {
+    fetchAppointments(selectedDate); // Pobierz wizyty dla wybranego dnia
+  }, [selectedDate]);
+
+  // Otwieranie modala
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
+
+  // Zamknięcie modala
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+  
 
   // Handle car deletion
   const handleCarDelete = async (carId) => {
@@ -299,12 +343,9 @@ function UserPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       // Update state directly to remove the car
-      setCars((prevCars) => prevCars.filter((car) => car.id !== carId));
+      setCars((prevCars) => prevCars.filter((car) => car.id !== carId));  
     } catch (error) {
-      console.error(
-        "Błąd przy usuwaniu pojazdu:",
-        error.response?.data || error.message
-      );
+      console.error("Błąd przy usuwaniu pojazdu:", error.response?.data || error.message);
     }
   };
 
@@ -318,23 +359,18 @@ function UserPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       // Po udanej edycji, zaktualizuj pojazd w stanie
-      setCars(
-        cars.map((car) =>
-          car.id === editedCar.id ? { ...car, ...editedCar } : car
-        )
-      );
+      setCars(cars.map((car) =>
+        car.id === editedCar.id ? { ...car, ...editedCar } : car
+      ));
       setEditingCar(null); // Zakończ edycję
     } catch (error) {
-      console.error(
-        "Błąd przy edytowaniu pojazdu:",
-        error.response?.data || error.message
-      );
+      console.error("Błąd przy edytowaniu pojazdu:", error.response?.data || error.message);
     }
   };
 
   // Validate form fields
   const validateForm = () => {
-    return Object.values(newCar).every((value) => value.trim() !== ""); // ensure no field is empty
+    return Object.values(newCar).every(value => value.trim() !== ''); // ensure no field is empty
   };
 
   // Handle user data edit submission
@@ -342,17 +378,15 @@ function UserPage() {
     e.preventDefault();
     try {
       const response = await axios.put(
-        `http://localhost:5109/api/user/${userId}`,
+        `http://localhost:5109/api/User/${userId}`,
         editedUser,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setUser(response.data);
-      setEditingUser(false);
+      setEditingUser(false); 
     } catch (error) {
-      console.error(
-        "Błąd przy edytowaniu danych użytkownika:",
-        error.response?.data || error.message
-      );
+      console.error("Błąd przy edytowaniu danych użytkownika:", error.response?.data || error.message);
+      setError("Nie udało się zaktualizować danych użytkownika. Spróbuj ponownie.");
     }
   };
 
@@ -367,13 +401,17 @@ function UserPage() {
       const appointmentDate = new Date(appt.recordDate).setHours(0, 0, 0, 0); // Ustawiamy godzinę wizyty na 00:00:00
       return appointmentDate === clickedDate;
     });
-
+    
     if (appointment) {
       setSelectedAppointment(appointment);
     } else {
       setSelectedAppointment(null);
     }
   };
+  
+  
+  
+  
 
   // Handle new car addition
   const handleCarAddSubmit = async (e) => {
@@ -393,13 +431,11 @@ function UserPage() {
       setAddingNewCar(false);
       setError(null);
     } catch (error) {
-      console.error(
-        "Błąd przy dodawaniu pojazdu:",
-        error.response?.data || error.message
-      );
+      console.error("Błąd przy dodawaniu pojazdu:", error.response?.data || error.message);
       setError("Nie udało się dodać pojazdu. Spróbuj ponownie.");
     }
   };
+  
 
   return (
     <UserPageContainer>
@@ -411,229 +447,224 @@ function UserPage() {
 
           <TwoColumnLayout>
             <LeftColumn>
-              {editingUser ? (
-                <UserEditForm
-                  editedUser={editedUser}
-                  setEditedUser={setEditedUser}
-                  onSubmit={handleUserEditSubmit}
-                  onCancel={() => setEditingUser(false)}
+
+          {editingUser ? (
+            <FormContainer>
+              <form onSubmit={handleUserEditSubmit}>
+                <FormInput
+                  type="text"
+                  value={editedUser.login}
+                  onChange={(e) => setEditedUser({ ...editedUser, login: e.target.value })}
+                  placeholder="Login"
                 />
-              ) : (
-                <UserInfoCard
-                  user={user}
-                  onEditClick={() => setEditingUser(true)}
+                <FormInput
+                  type="email"
+                  value={editedUser.email}
+                  onChange={(e) => setEditedUser({ ...editedUser, email: e.target.value })}
+                  placeholder="Email"
                 />
-              )}
-
-              <ButtonContainer>
-                <DynamicAddCarButton
-                  onClick={toggleForm} // Zmieniamy przycisk po kliknięciu
-                  iscancel={iscancel} // Używamy stanu do zmiany stylu i tekstu przycisku
-                >
-                  {showForm ? "Anuluj" : "Dodaj pojazd"}
-                </DynamicAddCarButton>
-                <AddCarButton onClick={() => setShowVehicles(!showVehicles)}>
-                  {showVehicles ? "Ukryj pojazdy" : "Pokaż pojazdy"}
-                </AddCarButton>
-              </ButtonContainer>
-              {showForm && (
-                <CarForm
-                  carData={newCar}
-                  setCarData={setNewCar}
-                  onSubmit={handleCarAddSubmit}
-                  error={error}
-                  submitButtonText={"Dodaj pojazd"}
+                <FormInput
+                  type="tel"
+                  value={editedUser.phone}
+                  onChange={(e) => setEditedUser({ ...editedUser, phone: e.target.value })}
+                  placeholder="Telefon"
                 />
-              )}
+                
+                <SubmitButton type="submit">Zapisz zmiany</SubmitButton>
+                <CancelButton onClick={() => setEditingUser(false)}>Anuluj</CancelButton>
+              </form>
+            </FormContainer>
+          ) : (
+            <UserInfoCard>
+              <UserInfoLabel><strong>Login: </strong><UserInfoValue>{user.login}</UserInfoValue></UserInfoLabel>
+              <UserInfoLabel><strong>Email: </strong><UserInfoValue>{user.email}</UserInfoValue></UserInfoLabel>
+              <UserInfoLabel><strong>Telefon: </strong> <UserInfoValue>{user.phone || 'Brak'}</UserInfoValue></UserInfoLabel>
+              <EditButton onClick={() => setEditingUser(true)}>Edytuj dane</EditButton>
+            </UserInfoCard>
+          )}
 
-              {showVehicles && (
-                <CarsContainer>
-                  {cars.map((car) => (
-                    <VehicleCard
-                      key={car.id} // Pass the unique identifier as the key prop
-                      vehicle={car}
-                      onDelete={handleCarDelete} // Handle vehicle deletion here
-                      onEdit={(car) => {
-                        setEditingCar(car);
-                        setEditedCar({ ...car }); // Initialize edit form with car data
-                      }}
-                      onClick={() => handleVehicleClick(car)}
-                    />
-                  ))}
-                </CarsContainer>
-              )}
+          
+            <ButtonContainer>
+            <DynamicAddCarButton
+              onClick={toggleForm} // Zmieniamy przycisk po kliknięciu
+              iscancel={iscancel} // Używamy stanu do zmiany stylu i tekstu przycisku
+            >
+              {showForm ? "Anuluj" : "Dodaj pojazd"}
+            </DynamicAddCarButton>
+            <AddCarButton onClick={() => setShowVehicles(!showVehicles)}>
+              {showVehicles ? "Ukryj pojazdy" : "Pokaż pojazdy"}
+            </AddCarButton>
+          </ButtonContainer>
+          {showForm && (
+            <FormContainer>
+              <form onSubmit={addingNewCar ? handleCarAddSubmit : handleCarEditSubmit}>
+                <FormInput
+                  type="text"
+                  value={newCar.brand}
+                  onChange={(e) => setNewCar({ ...newCar, brand: e.target.value })}
+                  placeholder="Marka"
+                />
+                <FormInput
+                  type="text"
+                  value={newCar.model}
+                  onChange={(e) => setNewCar({ ...newCar, model: e.target.value })}
+                  placeholder="Model"
+                />
+                <FormInput
+                  type="text"
+                  value={newCar.registrationNumber}
+                  onChange={(e) => setNewCar({ ...newCar, registrationNumber: e.target.value })}
+                  placeholder="Nr rejestracyjny"
+                />
+                <FormInput
+                  type="number"
+                  value={newCar.capacity}
+                  onChange={(e) => setNewCar({ ...newCar, capacity: e.target.value })}
+                  placeholder="Pojemność"
+                />
+                <FormInput
+                  type="number"
+                  value={newCar.power}
+                  onChange={(e) => setNewCar({ ...newCar, power: e.target.value })}
+                  placeholder="Moc"
+                />
+                <FormInput
+                  type="text"
+                  value={newCar.vin}
+                  onChange={(e) => setNewCar({ ...newCar, vin: e.target.value })}
+                  placeholder="VIN"
+                />
+                <FormInput
+                  type="number"
+                  value={newCar.productionYear}
+                  onChange={(e) => setNewCar({ ...newCar, productionYear: e.target.value })}
+                  placeholder="Rok produkcji"
+                />
+                {error && <p style={{ color: 'red' }}>{error}</p>}
+                <SubmitButton type="submit">{addingNewCar ? "Dodaj pojazd" : "Zapisz zmiany"}</SubmitButton>
+              </form>
+            </FormContainer>
+          )}
 
-              {selectedVehicle && (
-                <CardContainer>
-                  <div>
-                    <h3>
-                      <strong>Dane Pojazdu</strong>
-                    </h3>
-                    <p>
-                      <strong>Marka:</strong> {selectedVehicle.brand}
-                    </p>
-                    <p>
-                      <strong>Model:</strong> {selectedVehicle.model}
-                    </p>
-                    <p>
-                      <strong>Numer rejestracyjny:</strong>{" "}
-                      {selectedVehicle.registrationNumber}
-                    </p>
-                    <p>
-                      <strong>Pojemność:</strong> {selectedVehicle.capacity} cm³
-                    </p>
-                    <p>
-                      <strong>Moc:</strong> {selectedVehicle.power} KM
-                    </p>
-                    <p>
-                      <strong>VIN:</strong> {selectedVehicle.vin}
-                    </p>
-                    <p>
-                      <strong>Rok produkcji:</strong>{" "}
-                      {selectedVehicle.productionYear}
-                    </p>
-                    <BackToListButton onClick={handleBackToVehicleList}>
-                      Powrót do listy pojazdów
-                    </BackToListButton>
-                  </div>
-                </CardContainer>
-              )}
+          {showVehicles && (
+            <CarsContainer>
+            {cars.map((car) => (
+              <VehicleCard
+                key={car.id} // Pass the unique identifier as the key prop
+                vehicle={car}
+                onDelete={handleCarDelete} // Handle vehicle deletion here
+                onEdit={(car) => {
+                  setEditingCar(car);
+                  setEditedCar({ ...car }); // Initialize edit form with car data
+                }}
+                onClick={() => handleVehicleClick(car)}
+              />
+            ))}
+          </CarsContainer>
+          )}
 
-              {editingCar && (
-                // <CarForm
-                //   carData={editedCar}
-                //   setCarData={setEditedCar}
-                //   onSubmit={handleCarEditSubmit}
-                //   error={error}
-                //   submitButtonText={"Zapisz zmiany"}
-                // />
-                <FormContainer>
-                  <form onSubmit={handleCarEditSubmit}>
-                    <FormInput
-                      type="text"
-                      value={editedCar.brand}
-                      onChange={(e) =>
-                        setEditedCar({ ...editedCar, brand: e.target.value })
-                      }
-                      placeholder="Marka"
-                    />
-                    <FormInput
-                      type="text"
-                      value={editedCar.model}
-                      onChange={(e) =>
-                        setEditedCar({ ...editedCar, model: e.target.value })
-                      }
-                      placeholder="Model"
-                    />
-                    <FormInput
-                      type="text"
-                      value={editedCar.registrationNumber}
-                      onChange={(e) =>
-                        setEditedCar({
-                          ...editedCar,
-                          registrationNumber: e.target.value,
-                        })
-                      }
-                      placeholder="Numer rejestracyjny"
-                    />
-                    <FormInput
-                      type="number"
-                      value={editedCar.capacity}
-                      onChange={(e) =>
-                        setEditedCar({ ...editedCar, capacity: e.target.value })
-                      }
-                      placeholder="Pojemność"
-                    />
-                    <FormInput
-                      type="number"
-                      value={editedCar.power}
-                      onChange={(e) =>
-                        setEditedCar({ ...editedCar, power: e.target.value })
-                      }
-                      placeholder="Moc"
-                    />
-                    <FormInput
-                      type="text"
-                      value={editedCar.vin}
-                      onChange={(e) =>
-                        setEditedCar({ ...editedCar, vin: e.target.value })
-                      }
-                      placeholder="VIN"
-                    />
-                    <FormInput
-                      type="number"
-                      value={editedCar.productionYear}
-                      onChange={(e) =>
-                        setEditedCar({
-                          ...editedCar,
-                          productionYear: e.target.value,
-                        })
-                      }
-                      placeholder="Rok produkcji"
-                    />
-                    <SubmitButton type="submit">Zapisz zmiany</SubmitButton>
-                    <CancelButton onClick={() => setEditingCar(null)}>
-                      Anuluj
-                    </CancelButton>
-                  </form>
-                </FormContainer>
-              )}
+{selectedVehicle && (
+ <CardContainer> 
+  <div> 
+  
+    <h3><strong>Dane Pojazdu</strong></h3>
+    <p><strong>Marka:</strong> {selectedVehicle.brand}</p>
+    <p><strong>Model:</strong> {selectedVehicle.model}</p>
+    <p><strong>Numer rejestracyjny:</strong> {selectedVehicle.registrationNumber}</p>
+    <p><strong>Pojemność:</strong> {selectedVehicle.capacity} cm³</p>
+    <p><strong>Moc:</strong> {selectedVehicle.power} KM</p>
+    <p><strong>VIN:</strong> {selectedVehicle.vin}</p>
+    <p><strong>Rok produkcji:</strong> {selectedVehicle.productionYear}</p> 
+    <BackToListButton onClick={handleBackToVehicleList}>Powrót do listy pojazdów</BackToListButton>
+    </div>
+  </CardContainer>
+    
+ 
+)}
+
+
+          {editingCar && (
+            <FormContainer>
+              <form onSubmit={handleCarEditSubmit}>
+                <FormInput
+                  type="text"
+                  value={editedCar.brand}
+                  onChange={(e) => setEditedCar({ ...editedCar, brand: e.target.value })}
+                  placeholder="Marka"
+                />
+                <FormInput
+                  type="text"
+                  value={editedCar.model}
+                  onChange={(e) => setEditedCar({ ...editedCar, model: e.target.value })}
+                  placeholder="Model"
+                />
+                <FormInput
+                  type="text"
+                  value={editedCar.registrationNumber}
+                  onChange={(e) => setEditedCar({ ...editedCar, registrationNumber: e.target.value })}
+                  placeholder="Numer rejestracyjny"
+                />
+                <FormInput
+                  type="number"
+                  value={editedCar.capacity}
+                  onChange={(e) => setEditedCar({ ...editedCar, capacity: e.target.value })}
+                  placeholder="Pojemność"
+                />
+                <FormInput
+                  type="number"
+                  value={editedCar.power}
+                  onChange={(e) => setEditedCar({ ...editedCar, power: e.target.value })}
+                  placeholder="Moc"
+                />
+                <FormInput
+                  type="text"
+                  value={editedCar.vin}
+                  onChange={(e) => setEditedCar({ ...editedCar, vin: e.target.value })}
+                  placeholder="VIN"
+                />
+                <FormInput
+                  type="number"
+                  value={editedCar.productionYear}
+                  onChange={(e) => setEditedCar({ ...editedCar, productionYear: e.target.value })}
+                  placeholder="Rok produkcji"
+                />
+                <SubmitButton type="submit">Zapisz zmiany</SubmitButton>
+                <CancelButton onClick={() => setEditingCar(null)}>Anuluj</CancelButton>
+              </form>
+            </FormContainer>
+          )}
             </LeftColumn>
 
             <RightColumn>
               <WelcomeMessage>Twoje wizyty:</WelcomeMessage>
 
-              {/* Wyświetlamy kalendarz */}
-              <div style={{ width: "300px", marginBottom: "30px" }}>
-                <StyledCalendar
-                  value={new Date()} // Ustawienie bieżącej daty
-                  tileClassName={({ date, view }) => {
-                    // Sprawdzamy, czy dany dzień ma wizytę
-                    if (
-                      appointments.some(
-                        (appointment) =>
-                          new Date(appointment.date).toLocaleDateString() ===
-                          date.toLocaleDateString()
-                      )
-                    ) {
-                      return "highlight"; // Dodajemy klasę CSS dla daty wizyty
-                    }
-                  }}
-                  onClickDay={handleDateClick} // Obsługuje kliknięcie w dzień
-                />
-              </div>
+          
+                    {/* Render the calendar and appointments */}
+                    <StyledCalendar
+            onClickDay={handleDateClick}  // Click day to view appointments
+            value={selectedDate || new Date()}  // Set the currently selected date
+          />
 
-              {/* Wyświetlamy szczegóły wizyty w przypadku wybranego dnia */}
-              {selectedAppointment && (
-                <ModalBackground onClick={() => setSelectedAppointment(null)}>
-                  <ModalContent onClick={(e) => e.stopPropagation()}>
-                    <h3>Szczegóły wizyty</h3>
-                    <AppointmentDetails>
-                      <p>
-                        <strong>Godzina:</strong>{" "}
-                        {new Date(
-                          selectedAppointment.recordDate
-                        ).toLocaleTimeString()}
-                      </p>
-                      <p>
-                        <strong>Warsztat:</strong> {selectedAppointment.termId}
-                      </p>
-                      <p>
-                        <strong>Usługa:</strong> {selectedAppointment.favourId}
-                      </p>
-                      <p>
-                        <strong>Pojazd:</strong> {selectedAppointment.vehicleId}
-                      </p>
-                    </AppointmentDetails>
-                  </ModalContent>
-                </ModalBackground>
-              )}
-            </RightColumn>
-          </TwoColumnLayout>
-        </>
-      )}
-    </UserPageContainer>
-  );
+          {selectedAppointment && (
+            <ModalBackground>
+              <ModalContent>
+                <h3>Wizyta: {selectedAppointment.title}</h3>
+                <AppointmentDetails>
+                  <p><strong>Data: </strong>{new Date(selectedAppointment.recordDate).toLocaleDateString()}</p>
+                  <p><strong>Opis: </strong>{selectedAppointment.description}</p>
+                  <p><strong>Adres: </strong>{selectedAppointment.location}</p>
+                  <p><strong>Godzina: </strong>{new Date(selectedAppointment.recordDate).toLocaleTimeString()}</p>
+                </AppointmentDetails>
+                <button onClick={closeModal}>Zamknij</button>
+              </ModalContent>
+            </ModalBackground>
+          )}
+        </RightColumn>
+      </TwoColumnLayout>
+    </>
+  )}
+</UserPageContainer>
+);
 }
 
 export default UserPage;
