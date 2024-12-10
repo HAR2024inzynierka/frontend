@@ -6,6 +6,8 @@ import Login from './components/Login';
 import Home from './components/Home';
 import UserPage from './components/UserPage';
 import AdminDashboard from './components/AdminDashboard';
+import axios from 'axios';
+import WorkshopPage from './components/WorkshopPage'; // New component for selecting workshop
 
 // Styled Components
 const AppContainer = styled.div`
@@ -74,6 +76,8 @@ const LogoutButton = styled.button`
     cursor: pointer;
     font-weight: bold;
     border-radius: 5px;
+    font-weight: bold;
+    font-size: 16px;
 
     &:hover {
         background: white; /* Jaśniejszy kolor przycisku na hover */
@@ -88,15 +92,32 @@ const MainContent = styled.div`
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [workshops, setWorkshops] = useState([]);
+    const [selectedWorkshop, setSelectedWorkshop] = useState(null);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
         setIsAuthenticated(!!token);
+        
+        // Fetch workshops if the user is authenticated
+        if (token) {
+            const fetchWorkshops = async () => {
+                try {
+                    const response = await axios.get('http://localhost:5109/api/AutoRepairShop/workshops');
+                    setWorkshops(response.data);
+                } catch (error) {
+                    console.error('Error fetching workshops:', error);
+                }
+            };
+
+            fetchWorkshops();
+        }
     }, []);
 
     const handleLogout = () => {
         localStorage.removeItem('token');
         setIsAuthenticated(false);
+        window.location.reload();
     };
 
     return (
@@ -108,7 +129,8 @@ function App() {
                         {isAuthenticated ? (
                             <>
                                 <NavLink to="/user">Twoje konto</NavLink>
-                                <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
+                                
+                                <LogoutButton onClick={handleLogout}>Wyloguj</LogoutButton>
                             </>
                         ) : (
                             <>
@@ -120,7 +142,7 @@ function App() {
                 </Navbar>
                 <MainContent>
                     <Routes>
-                        <Route path="/" element={<Home />} />
+                        <Route path="/" element={<Home workshops={workshops} selectedWorkshop={selectedWorkshop} />} />
                         <Route
                             path="/user"
                             element={isAuthenticated ? <UserPage /> : <Login setIsAuthenticated={setIsAuthenticated} />}
@@ -128,6 +150,16 @@ function App() {
                         <Route path="/admin" element={<AdminDashboard />} />
                         <Route path="/register" element={<Register setIsAuthenticated={setIsAuthenticated} />} />
                         <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
+                        <Route
+                            path="/workshop"
+                            element={
+                                <WorkshopPage
+                                    workshops={workshops}
+                                    selectedWorkshop={selectedWorkshop}
+                                    setSelectedWorkshop={setSelectedWorkshop}
+                                />
+                            }
+                        />
                     </Routes>
                 </MainContent>
             </AppContainer>
