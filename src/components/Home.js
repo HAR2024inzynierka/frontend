@@ -10,7 +10,7 @@ const HomeContainer = styled.div`
   display: flex;
   justify-content: flex-start;
   align-items: flex-start;
-  min-height: 100vh;
+  height: auto;
   background-color: #f5f5f5;
   padding: 20px;
   flex-direction: row;
@@ -29,7 +29,7 @@ const RightColumn = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   width: 100%;
   height: 100%;
   padding-bottom: 20px; /* Gives room for the form at the bottom */
@@ -171,11 +171,12 @@ const Button = styled.button`
 `;
 
 const Image = styled.img`
-  width: 100%;
+  width: 70%;
   height: auto;
   border-radius: 10px;
   object-fit: cover;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  align-items: center;
 `;
 
 const Opis = styled.p`
@@ -211,7 +212,7 @@ function Home() {
           axios.get(`http://localhost:5109/api/user/${userId}`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get(`http://localhost:5109/api/user/${userId}/vehicles`, {
+          axios.get(`http://localhost:5109/api/user/vehicles`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -299,14 +300,19 @@ function Home() {
     const completionDate = selectedHour.endDate;
 
     try {
-      await axios.post('http://localhost:5109/api/AutoRepairShop/add-record', {
+      await axios.post(
+        'http://localhost:5109/api/AutoRepairShop/add-record', 
+        {
         vehicleId: selectedVehicle,
         favourId: selectedService,
         termId: selectedTime,
         recordDate: recordDate,
-        completionDate: completionDate,
         workshopId: selectedWorkshop,
-      });
+        },
+        {
+          headers: {Authorization: `Bearer ${token}`},
+        }
+      );
       alert('Wizyta została umówiona!');
     } catch (error) {
       console.error('Error scheduling appointment:', error);
@@ -340,65 +346,6 @@ function Home() {
   return (
     <>
     <HomeContainer>
-      <LeftColumn>
-        <Card>
-          <Title>Umów wizytę</Title>
-          <CalendarWrapper>
-            <Section>
-              <h3>Wybierz datę naprawy</h3>
-              <DatePicker selected={date} onChange={handleDateChange} />
-            </Section>
-          </CalendarWrapper>
-          <Section>
-            <h3>Wybierz warsztat</h3>
-            <select value={selectedWorkshop} onChange={handleWorkshopChange}>
-              <option value="">Wybierz warsztat</option>
-              {workshops.map((workshop) => (
-                <option key={workshop.id} value={workshop.id}>
-                  {workshop.address}
-                </option>
-              ))}
-            </select>
-          </Section>
-          <Section>
-            <h3>Wybierz godzinę</h3>
-            <select value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)}>
-              <option value="">Wybierz godzinę</option>
-              {availableHours.map((hour) => (
-                <option key={hour.id} value={hour.id}>
-                  {new Date(hour.startDate).toLocaleTimeString('pl-PL', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </option>
-              ))}
-            </select>
-          </Section>
-          <Section>
-            <h3>Wybierz usługę</h3>
-            <select value={selectedService} onChange={(e) => setSelectedService(e.target.value)}>
-              <option value="">Wybierz usługę</option>
-              {services.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.typeName}
-                </option>
-              ))}
-            </select>
-          </Section>
-          <Section>
-            <h3>Wybierz pojazd</h3>
-            <select value={selectedVehicle} onChange={(e) => setSelectedVehicle(e.target.value)}>
-              <option value="">Wybierz pojazd</option>
-              {vehicles.map((vehicle) => (
-                <option key={vehicle.id} value={vehicle.id}>
-                  {vehicle.brand} {vehicle.model} {vehicle.registrationNumber}
-                </option>
-              ))}
-            </select>
-          </Section>
-          <Button onClick={handleSubmit}>Umów wizytę</Button>
-        </Card>
-      </LeftColumn>
       <RightColumn>
         <Image src="https://imgs.search.brave.com/3ZISgELlSj7O93BAdJHpQEWYOWfhD3HPxSgc2pAo4l4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/cHJlbWl1bS16ZGpl/Y2llL21lY2hhbmlr/LXNhbW9jaG9kb3d5/LW5hcHJhd2lhamFj/eS1zYW1vY2hvZC13/LXdhcnN6dGFjaWUt/c2Ftb2Nob2Rvd3lt/Xzc0MjMzOS0xMzgx/LmpwZz9zZW10PWFp/c19oeWJyaWQ" width={100000} alt="Warsztat samochodowy" />
         <Opis><strong>Pan Alternator </strong> to serwis, który zapewni Ci komfort umawiania wizyt w warsztatach samochosowych bez konieczności wychodzenia z domu!

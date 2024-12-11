@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import styled from "styled-components";
+import { useNavigate } from "react-router-dom";
 
 const Container = styled.div`
   padding: 20px;
@@ -85,10 +86,24 @@ function AdminDashboard() {
   const [editingWorkshop, setEditingWorkshop] = useState(null);
   const [terms, setTerms] = useState([]);
   const [favours, setFavours] = useState([]);
-  const [newTerm, setNewTerm] = useState({ startDate: "", endDate: "", availability: true });
-  const [newFavour, setNewFavour] = useState({ typeName: "", description: "", price: "" });
-
+  const [newTerm, setNewTerm] = useState({
+    startDate: "",
+    endDate: "",
+    availability: true,
+  });
+  const [newFavour, setNewFavour] = useState({
+    typeName: "",
+    description: "",
+    price: "",
+  });
+  const [selectedDate, setSelectedDate] = useState("");
   const token = localStorage.getItem("token");
+  const navigate = useNavigate();
+  const [records, setRecords] = useState([]);
+
+  const handleDetailsClick = (workshop) => {
+    navigate("/admin/workshop-dashboard", { state: { workshop } });
+  };
 
   // Fetch users and workshops
   useEffect(() => {
@@ -98,12 +113,20 @@ function AdminDashboard() {
           throw new Error("Brak tokena w localStorage");
         }
 
-        const response = await axios.get("http://localhost:5109/api/admin/users", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await axios.get(
+          "http://localhost:5109/api/admin/users",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const recordsResponse = await axios.get(
+          `http://localhost:5109/api/admin/Record`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
 
+        setRecords(recordsResponse.data);
         setUsers(response.data);
       } catch (err) {
         setError("Nie udało się pobrać listy użytkowników.");
@@ -116,11 +139,14 @@ function AdminDashboard() {
           throw new Error("Brak tokena w localStorage");
         }
 
-        const response = await axios.get("http://localhost:5109/api/AutoRepairShop/workshops", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await axios.get(
+          "http://localhost:5109/api/AutoRepairShop/workshops",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         setWorkshops(response.data);
       } catch (err) {
@@ -132,23 +158,6 @@ function AdminDashboard() {
     fetchWorkshops();
   }, [token]);
 
-  const fetchDetailsForWorkshop = async (id) => {
-    try {
-      const termsResponse = await axios.get(
-        `http://localhost:5109/api/AutoRepairShop/${id}/terms`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const favoursResponse = await axios.get(
-        `http://localhost:5109/api/AutoRepairShop/${id}/favours`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setTerms(termsResponse.data);
-      setFavours(favoursResponse.data);
-    } catch {
-      setError("Nie udało się pobrać szczegółów warsztatu.");
-    }
-  };
-
   // Add Workshop
   const handleAddWorkshop = async (e) => {
     if (e) e.preventDefault();
@@ -157,106 +166,53 @@ function AdminDashboard() {
         "http://localhost:5109/api/admin/workshop",
         newWorkshop,
         {
-          headers: { Authorization: `Bearer ${token} `},
+          headers: { 
+            Authorization: `Bearer ${token}`, },
         }
       );
-  
+
       const updatedWorkshops = await axios.get(
         "http://localhost:5109/api/AutoRepairShop/workshops",
         {
-          headers: { Authorization: `Bearer ${token} `},
+          headers: { Authorization: `Bearer ${token}`, },
         }
       );
-  
+
       setWorkshops(updatedWorkshops.data);
       setIsAddModalOpen(false);
       setNewWorkshop({ email: "", address: "", phoneNumber: "" });
-  
     } catch (err) {
       setError("Nie udało się dodać warsztatu.");
     }
   };
 
-  // Delete Workshop
-  const handleDeleteWorkshop = async (id) => {
-    try {
-      await axios.delete(`http://localhost:5109/api/admin/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setWorkshops(workshops.filter((workshop) => workshop.id !== id));
-      setSelectedWorkshop(null); // Zamknij widok szczegółów po usunięciu
-    } catch (err) {
-      setError("Nie udało się usunąć warsztatu.");
-    }
-  };
-
-  const handleEditWorkshop = async (e) => {
-    if (e) e.preventDefault();
-    try {
-      await axios.put(
-        `http://localhost:5109/api/admin/${editingWorkshop.id}`,
-        editingWorkshop,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-  
-      const updatedWorkshops = await axios.get(
-        "http://localhost:5109/api/AutoRepairShop/workshops",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-  
-      setWorkshops(updatedWorkshops.data);
-      setEditingWorkshop(null);
-    } catch (err) {
-      setError("Nie udało się zaktualizować warsztatu.");
-    }
-  };
-
-  // Add Term
-  const handleAddTerm = async () => {
+  const handleCompleteRecord = async (recordId) => {
     try {
       const response = await axios.post(
-        "http://localhost:5109/api/admin/Term/add",
-        { ...newTerm, autoServiceId: selectedWorkshop.id },
-        { headers: { Authorization: `Bearer ${token}` } }
+        `http://localhost:5109/api/admin/Record/complete/${recordId}`,
+        {
+          headers: { 
+            Authorization: `Bearer ${token}` },
+        }
       );
-      setTerms([...terms, response.data]);
-      setNewTerm({ startDate: "", endDate: "", availability: true });
-    } catch {
-      setError("Nie udało się dodać terminu.");
-    }
-  };
-
-  const handleAddFavour = async () => {
-    const preparedFavour = {
-      ...newFavour,
-      price: parseFloat(newFavour.price), // Upewniamy się, że cena jest liczbą
-      autoServiceId: selectedWorkshop.id,
-    };
-  
-    console.log("Dane usługi wysyłane do API:", preparedFavour); // Debugowanie
-  
-    try {
-      const response = await axios.post(
-        "http://localhost:5109/api/admin/Favour/add",
-        preparedFavour,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setFavours([...favours, response.data]);
-      setNewFavour({ typeName: "", description: "", price: "" }); // Reset formularza
+      if (response.status === 200) {
+        // Обновляем список записей после успешного завершения
+        setRecords((prevRecords) =>
+          prevRecords.map((record) =>
+            record.id === recordId
+              ? { ...record, completionDate: new Date().toISOString() } // Добавляем дату завершения
+              : record
+          )
+        );
+        alert("Usługa została zakończona!");
+      } else {
+        alert("Wystąpił błąd podczas zakończenia usługi.");
+      }
     } catch (error) {
-      setError("Nie udało się dodać usługi.");
-      console.error("Błąd podczas dodawania usługi:", error.response?.data);
+      console.error("Error completing record:", error);
+      alert("Nie udało się zakończyć usługi.");
     }
   };
-  
-  
-  
-
 
   return (
     <Container>
@@ -310,7 +266,11 @@ function AdminDashboard() {
                 <TableCell>{workshop.address}</TableCell>
                 <TableCell>{workshop.phoneNumber}</TableCell>
                 <TableCell>
-                  <Button onClick={() => {setSelectedWorkshop(workshop); fetchDetailsForWorkshop(workshop.id);}}>
+                  <Button
+                    onClick={() => {
+                      handleDetailsClick(workshop);
+                    }}
+                  >
                     Szczegóły
                   </Button>
                 </TableCell>
@@ -322,121 +282,8 @@ function AdminDashboard() {
         <p>Brak warsztatów do wyświetlenia.</p>
       )}
 
-      {/* Szczegóły Warsztatu */}
-      {selectedWorkshop && (
-        <Modal>
-          <ModalContent>
-            <h2>Szczegóły Warsztatu</h2>
-            <p>
-              <strong>ID:</strong> {selectedWorkshop.id}
-            </p>
-            <p>
-              <strong>Email:</strong> {selectedWorkshop.email}
-            </p>
-            <p>
-              <strong>Adres:</strong> {selectedWorkshop.address}
-            </p>
-            <p>
-              <strong>Numer Telefonu:</strong> {selectedWorkshop.phoneNumber}
-            </p>
-            <div>
-            <h3>Terminy</h3>
-            <Table>
-              <thead>
-                <tr>
-                  <TableHeader>ID</TableHeader>
-                  <TableHeader>Data Rozpoczęcia</TableHeader>
-                  <TableHeader>Data Zakończenia</TableHeader>
-                </tr>
-              </thead>
-              <tbody>
-                {terms.map((term) => (
-                  <tr key={term.id}>
-                    <TableCell>{term.id}</TableCell>
-                    <TableCell>{term.startDate}</TableCell>
-                    <TableCell>{term.endDate}</TableCell>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-            <input
-              type="datetime-local"
-              value={newTerm.startDate}
-              onChange={(e) => setNewTerm({ ...newTerm, startDate: e.target.value })}
-            />
-            <input
-              type="datetime-local"
-              value={newTerm.endDate}
-              onChange={(e) => setNewTerm({ ...newTerm, endDate: e.target.value })}
-            />
-            <Button onClick={handleAddTerm}>Dodaj Termin</Button>
-            </div>
-            <div>
-            <h3>Usługi</h3>
-            <Table>
-              <thead>
-                <tr>
-                  <TableHeader>ID</TableHeader>
-                  <TableHeader>Rodzaj</TableHeader>
-                  <TableHeader>Koszt</TableHeader>
-                </tr>
-              </thead>
-              <tbody>
-                {favours.map((favour) => (
-                  <tr key={favour.id}>
-                    <TableCell>{favour.id}</TableCell>
-                    <TableCell>{favour.typeName}</TableCell>
-                    <TableCell>{favour.price}</TableCell>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-            <input
-              type="text"
-              placeholder="Rodzaj Usługi"
-              value={newFavour.typeName}
-              onChange={(e) => setNewFavour({ ...newFavour, typeName: e.target.value })}
-            />
-            <input
-              type="text"
-              placeholder="Opis usługi"
-              maxLength={500}
-              value={newFavour.description}
-              onChange={(e) => setNewFavour({ ...newFavour, description: e.target.value })}
-            />
-            <input
-              type="number"
-              placeholder="Koszt"
-              value={newFavour.price}
-              onChange={(e) => setNewFavour({ ...newFavour, price: parseFloat(e.target.value) || "" })}
-            />
-            <div><Button onClick={handleAddFavour}>Dodaj Usługę</Button></div>
-            
-            </div>
-            <Button
-              onClick={() => setEditingWorkshop(selectedWorkshop)}
-              style={{ backgroundColor: "#00509e" }}
-            >
-              Edytuj
-            </Button>
-            <Button
-              onClick={() => handleDeleteWorkshop(selectedWorkshop.id)}
-              style={{ backgroundColor: "#931621" }}
-            >
-              Usuń
-            </Button>
-            <Button
-              onClick={() => setSelectedWorkshop(null)}
-              style={{ backgroundColor: "#01295f" }}
-            >
-              Zamknij
-            </Button>
-          </ModalContent>
-        </Modal>
-      )}
-
-       {/* Dodawanie Warsztatu */}
-       {isAddModalOpen && (
+      {/* Dodawanie Warsztatu */}
+      {isAddModalOpen && (
         <Modal>
           <ModalContent>
             <h2>Dodaj Warsztat</h2>
@@ -467,7 +314,10 @@ function AdminDashboard() {
                   type="text"
                   value={newWorkshop.phoneNumber}
                   onChange={(e) =>
-                    setNewWorkshop({ ...newWorkshop, phoneNumber: e.target.value })
+                    setNewWorkshop({
+                      ...newWorkshop,
+                      phoneNumber: e.target.value,
+                    })
                   }
                 />
               </div>
@@ -482,60 +332,48 @@ function AdminDashboard() {
           </ModalContent>
         </Modal>
       )}
-
-      {editingWorkshop && (
-        <Modal>
-          <ModalContent>
-            <h2>Edytuj Warsztat</h2>
-            <form>
-              <div>
-                <label>Email:</label>
-                <input
-                  type="email"
-                  value={editingWorkshop.email}
-                  onChange={(e) =>
-                    setEditingWorkshop({ ...editingWorkshop, email: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label>Adres:</label>
-                <input
-                  type="text"
-                  value={editingWorkshop.address}
-                  onChange={(e) =>
-                    setEditingWorkshop({ ...editingWorkshop, address: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label>Numer Telefonu:</label>
-                <input
-                  type="text"
-                  value={editingWorkshop.phoneNumber}
-                  onChange={(e) =>
-                    setEditingWorkshop({
-                      ...editingWorkshop,
-                      phoneNumber: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <Button onClick={handleEditWorkshop}>Zapisz</Button>
-              <Button
-                onClick={() => setEditingWorkshop(null)}
-                style={{ backgroundColor: "#931621" }}
-              >
-                Anuluj
-              </Button>
-            </form>
-          </ModalContent>
-        </Modal>
-      )}
+      <div>
+  <h3>Zapisy</h3>
+  <Table>
+    <thead>
+      <tr>
+        <TableHeader>ID</TableHeader>
+        <TableHeader>Pojazd</TableHeader>
+        <TableHeader>Usługa</TableHeader>
+        <TableHeader>Koszt</TableHeader>
+        <TableHeader>Data Rozpoczęcia</TableHeader>
+        <TableHeader>Data Zakończenia</TableHeader>
+      </tr>
+    </thead>
+    <tbody>
+      {records.map((record) => (
+        <tr key={record.id}>
+          <TableCell>{record.id}</TableCell>
+          <TableCell>
+            {record.vehicle.brand} {record.vehicle.model} (
+            {record.vehicle.registrationNumber})
+          </TableCell>
+          <TableCell>{record.favour.typeName}</TableCell>
+          <TableCell>{record.favour.price} zł</TableCell>
+          <TableCell>{new Date(record.term.startDate).toLocaleString()}</TableCell>
+          <TableCell>{new Date(record.term.endDate).toLocaleString()}</TableCell>
+          <TableCell>
+            {/* Кнопка завершения записи */}
+            <Button
+              onClick={() => handleCompleteRecord(record.id)}
+              disabled={!!record.completionDate} // Блокируем кнопку, если услуга уже завершена
+            >
+              {record.completionDate ? "Ukończono" : "Zakończ"}
+            </Button>
+          </TableCell>
+        </tr>
+      ))}
+    </tbody>
+  </Table>
+</div>
 
     </Container>
   );
 }
 
 export default AdminDashboard;
-
