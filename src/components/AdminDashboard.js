@@ -188,11 +188,14 @@ function AdminDashboard() {
 
   const handleCompleteRecord = async (recordId) => {
     try {
-      const response = await axios.post(
+      const response = await axios.put(
         `http://localhost:5109/api/admin/Record/complete/${recordId}`,
+        {},
         {
           headers: { 
-            Authorization: `Bearer ${token}` },
+            Authorization: `Bearer ${token}`,
+            Accept: '*/*',
+          }
         }
       );
       if (response.status === 200) {
