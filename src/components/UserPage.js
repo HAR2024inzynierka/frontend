@@ -254,7 +254,7 @@ function UserPage() {
   const [editedUser, setEditedUser] = useState({
     login: "",
     email: "",
-    phone: "",
+    phoneNumber: "",
   });
   const [showForm, setShowForm] = useState(false);
   const [addingNewCar, setAddingNewCar] = useState(true);
@@ -301,7 +301,7 @@ function UserPage() {
           {
             login: userResponse.data.login,
             email: userResponse.data.email,
-            phone: userResponse.data.phone || "Brak",
+            phoneNumber: userResponse.data.phoneNumber,
           },
           [user]
         );
@@ -331,7 +331,7 @@ function UserPage() {
       })
       .filter((value, index, self) => self.indexOf(value) === index); // Убираем дубликаты
 
-    console.log("Подсвечиваемые даты:", highlightedDates); // Логируем все уникальные даты
+    //console.log("Подсвечиваемые даты:", highlightedDates); // Логируем все уникальные даты
     return highlightedDates;
   };
 
@@ -364,27 +364,6 @@ function UserPage() {
     setShowModal(false);
     setSelectedRecord(null);
   };
-
-  // Funkcja do pobierania wizyt z API na dany dzień
-  // const fetchAppointments = async (date) => {
-  //   try {
-  //     const response = await axios.get(
-  //       `http://localhost:5109/api/User/records`,
-  //       {
-  //         headers: {Authorization: `Bearer ${token}`},
-  //       }
-  //     );
-  //     console.log(response.data);
-  //     setAppointments(response.data); // Zapisz wizyty w stanie
-  //   } catch (error) {
-  //     console.error("Błąd przy pobieraniu wizyt:", error);
-  //   }
-  // };
-
-  // Wywołanie pobierania wizyt za każdym razem, gdy zmienia się wybrany dzień
-  // useEffect(() => {
-  //   fetchAppointments(selectedDate); // Pobierz wizyty dla wybranego dnia
-  // }, [selectedDate]);
 
   // Otwieranie modala
   const openModal = () => {
@@ -445,11 +424,17 @@ function UserPage() {
   const handleUserEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.put(
+
+      await axios.put(
         `http://localhost:5109/api/User/`,
         editedUser,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      const response = await axios.get(`http://localhost:5109/api/User/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       setUser(response.data);
       setEditingUser(false);
     } catch (error) {
@@ -467,20 +452,6 @@ function UserPage() {
     setSelectedVehicle(null); // Clear selected vehicle
     setEditingCar(null); // Stop editing mode
   };
-
-  // const handleDateClick = (date) => {
-  //   const clickedDate = date.setHours(0, 0, 0, 0); // Ustawiamy godzinę na 00:00:00
-  //   const appointment = appointments.find((appt) => {
-  //     const appointmentDate = new Date(appt.recordDate).setHours(0, 0, 0, 0); // Ustawiamy godzinę wizyty na 00:00:00
-  //     return appointmentDate === clickedDate;
-  //   });
-
-  //   if (appointment) {
-  //     setSelectedAppointment(appointment);
-  //   } else {
-  //     setSelectedAppointment(null);
-  //   }
-  // };
 
   // Handle new car addition
   const handleCarAddSubmit = async (e) => {
@@ -539,9 +510,9 @@ function UserPage() {
                     />
                     <FormInput
                       type="tel"
-                      value={editedUser.phone}
+                      value={editedUser.phoneNumber}
                       onChange={(e) =>
-                        setEditedUser({ ...editedUser, phone: e.target.value })
+                        setEditedUser({ ...editedUser, phoneNumber: e.target.value })
                       }
                       placeholder="Telefon"
                     />
@@ -564,7 +535,7 @@ function UserPage() {
                   </UserInfoLabel>
                   <UserInfoLabel>
                     <strong>Telefon: </strong>{" "}
-                    <UserInfoValue>{user.phone || "Brak"}</UserInfoValue>
+                    <UserInfoValue>{user.phoneNumber || "Brak"}</UserInfoValue>
                   </UserInfoLabel>
                   <EditButton onClick={() => setEditingUser(true)}>
                     Edytuj dane
@@ -794,7 +765,7 @@ function UserPage() {
                   tileClassName={({ date }) => {
                     const highlightedDates = getHighlightedDates();
                     const formattedDate = date.toISOString().split("T")[0]; // Преобразуем текущую дату в 'YYYY-MM-DD'
-                    console.log("Дата на календаре:", formattedDate); // Логируем дату на календаре
+                    //console.log("Дата на календаре:", formattedDate); // Логируем дату на календаре
                     return highlightedDates.includes(formattedDate)
                       ? "highlight"
                       : null;
