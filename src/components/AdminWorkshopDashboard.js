@@ -97,6 +97,7 @@ function AdminWorkshopDashboard() {
   useEffect(() => {
     const fetchDetailsForWorkshop = async (id) => {
       try {
+
         const termsResponse = await axios.get(
           `http://localhost:5109/api/AutoRepairShop/${id}/terms`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -113,7 +114,32 @@ function AdminWorkshopDashboard() {
     };
 
     fetchDetailsForWorkshop(workshop.id);
-  }, [token, terms, favours]);
+  }, [token]);
+
+
+  const handleDeleteTerm = async (id) => {
+    try{
+      await axios.delete(`http://localhost:5109/api/admin/Term/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setTerms((prevTerms) => prevTerms.filter((term) => term.id !== id));
+    } catch (err) {
+      setError("Nie udało się usunąć terminu");
+    }
+  };
+
+  const handleDeleteFavour = async (id) => {
+    try{
+      await axios.delete(`http://localhost:5109/api/admin/Favour/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setFavours((prevFavours) => prevFavours.filter((favour) => favour.id !== id));
+    } catch (err) {
+      setError("Nie udało się usunąć usługi");
+    }
+  };
 
   // Delete Workshop
   const handleDeleteWorkshop = async (id) => {
@@ -146,12 +172,17 @@ function AdminWorkshopDashboard() {
   // Add Term
   const handleAddTerm = async () => {
     try {
-      const response = await axios.post(
+      await axios.post(
         "http://localhost:5109/api/admin/Term/add",
         { ...newTerm, autoServiceId: workshop.id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setTerms([...terms, response.data]);
+
+      const response = await axios.get(
+        `http://localhost:5109/api/AutoRepairShop/${workshop.id}/terms`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      setTerms(response.data);
       setNewTerm({ startDate: "", endDate: "", availability: true });
     } catch {
       setError("Nie udało się dodać terminu.");
@@ -165,14 +196,22 @@ function AdminWorkshopDashboard() {
     }
 
     try {
-      const response = await axios.post(
+      await axios.post(
         "http://localhost:5109/api/admin/Term/term-for-day",
         {
           autoServiceId: workshop.id,
-          date: selectedDate, // Отправляем только дату
+          day: selectedDate, // Отправляем только дату
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      const response = await axios.get(
+        `http://localhost:5109/api/AutoRepairShop/${workshop.id}/terms`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const newTerms = response.data;
+      setTerms(newTerms);
 
       alert("Terminy zostały pomyślnie dodane!");
       console.log("Odpowiedź serwera:", response.data);
@@ -189,15 +228,20 @@ function AdminWorkshopDashboard() {
       autoServiceId: workshop.id,
     };
 
-    console.log("Dane usługi wysyłane do API:", preparedFavour); // Debugowanie
-
     try {
-      const response = await axios.post(
-        "http://localhost:5109/api/admin/Favour/add",
+
+      await axios.post(
+        `http://localhost:5109/api/admin/Favour/add`,
         preparedFavour,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setFavours([...favours, response.data]);
+
+      const response = await axios.get(
+        `http://localhost:5109/api/AutoRepairShop/${workshop.id}/favours`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+
+      setFavours(response.data);
       setNewFavour({ typeName: "", description: "", price: "" }); // Reset formularza
     } catch (error) {
       setError("Nie udało się dodać usługi.");
@@ -236,6 +280,7 @@ function AdminWorkshopDashboard() {
                     <TableHeader>ID</TableHeader>
                     <TableHeader>Data Rozpoczęcia</TableHeader>
                     <TableHeader>Data Zakończenia</TableHeader>
+                    <TableHeader></TableHeader>
                   </tr>
                 </thead>
                 <tbody>
@@ -244,6 +289,14 @@ function AdminWorkshopDashboard() {
                       <TableCell>{term.id}</TableCell>
                       <TableCell>{term.startDate}</TableCell>
                       <TableCell>{term.endDate}</TableCell>
+                      <TableCell>
+                      <Button
+                        onClick={() => handleDeleteTerm(term.id)}
+                        style={{ backgroundColor: "#931621" }}
+                      >
+                        Usuń
+                      </Button>
+                    </TableCell>
                     </tr>
                   ))}
                 </tbody>
@@ -282,6 +335,7 @@ function AdminWorkshopDashboard() {
                   <TableHeader>ID</TableHeader>
                   <TableHeader>Rodzaj</TableHeader>
                   <TableHeader>Koszt</TableHeader>
+                  <TableHeader></TableHeader>
                 </tr>
               </thead>
               <tbody>
@@ -290,6 +344,14 @@ function AdminWorkshopDashboard() {
                     <TableCell>{favour.id}</TableCell>
                     <TableCell>{favour.typeName}</TableCell>
                     <TableCell>{favour.price}</TableCell>
+                    <TableCell>
+                    <Button
+                        onClick={() => handleDeleteFavour(favour.id)}
+                        style={{ backgroundColor: "#931621" }}
+                      >
+                        Usuń
+                      </Button>
+                    </TableCell>
                   </tr>
                 ))}
               </tbody>
