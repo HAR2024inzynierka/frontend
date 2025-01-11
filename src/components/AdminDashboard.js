@@ -238,7 +238,7 @@ function AdminDashboard() {
                 <TableCell>{user.id}</TableCell>
                 <TableCell>{user.login}</TableCell>
                 <TableCell>{user.email}</TableCell>
-                <TableCell>{user.numerTelefonu || "Brak"}</TableCell>
+                <TableCell>{user.phoneNumber || "Brak"}</TableCell>
               </tr>
             ))}
           </tbody>
