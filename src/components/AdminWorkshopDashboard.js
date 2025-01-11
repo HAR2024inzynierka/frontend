@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import styled from "styled-components";
-import { useNavigate } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import { useNavigate, useLocation  } from "react-router-dom";
 
 const Container = styled.div`
   padding: 20px;
@@ -93,6 +92,8 @@ function AdminWorkshopDashboard() {
   const location = useLocation();
   const { workshop } = location.state || {};
   const [showTerms, setShowTerms] = useState(false);
+  const [isEditingWorkshop, setIsEditingWorkshop] = useState(false);
+  const [editingWorkshop, setEditingWorkshop] = useState(null);
 
   useEffect(() => {
     const fetchDetailsForWorkshop = async (id) => {
@@ -159,11 +160,26 @@ function AdminWorkshopDashboard() {
     try {
       await axios.put(
         `http://localhost:5109/api/admin/${workshop.id}`,
-        workshop,
+        editingWorkshop,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
+      setIsEditingWorkshop(false);
+
+
+      const response = await axios.get(
+        `http://localhost:5109/api/AutoRepairShop/${workshop.id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+
+      navigate(location.pathname, {
+        state: { workshop: response.data },  // Обновляем state с новыми данными
+      });
+
     } catch (err) {
       setError("Nie udało się zaktualizować warsztatu.");
     }
@@ -247,6 +263,15 @@ function AdminWorkshopDashboard() {
       setError("Nie udało się dodać usługi.");
       console.error("Błąd podczas dodawania usługi:", error.response?.data);
     }
+  };
+
+  const handleOpenEditModal = () => {
+    setEditingWorkshop({
+      email: workshop.email,
+      address: workshop.address,
+      phoneNumber: workshop.phoneNumber,
+    });
+    setIsEditingWorkshop(true);
   };
 
   return (
@@ -390,13 +415,13 @@ function AdminWorkshopDashboard() {
           </div>
           
           <Button
-            //onClick={() => setEditingWorkshop(workshop)}
+            onClick={handleOpenEditModal}
             style={{ backgroundColor: "#00509e" }}
           >
             Edytuj
           </Button>
           <Button
-            //onClick={() => handleDeleteWorkshop(selectedWorkshop.id)}
+            onClick={() => handleDeleteWorkshop(workshop.id)}
             style={{ backgroundColor: "#931621" }}
           >
             Usuń
@@ -409,16 +434,16 @@ function AdminWorkshopDashboard() {
           </Button>
         </div>
       )}
-      {/* {workshop && (
-        <<Modal>
-          <ModalContent>>
+      {isEditingWorkshop && (
+        <Modal>
+          <ModalContent>
             <h2>Edytuj Warsztat</h2>
             <form>
               <div>
                 <label>Email:</label>
                 <input
                   type="email"
-                  value={workshop.email}
+                  value={editingWorkshop.email}
                   onChange={(e) =>
                     setEditingWorkshop({
                       ...editingWorkshop,
@@ -455,7 +480,7 @@ function AdminWorkshopDashboard() {
               </div>
               <Button onClick={handleEditWorkshop}>Zapisz</Button>
               <Button
-                onClick={() => setEditingWorkshop(null)}
+                onClick={() => setIsEditingWorkshop(false)}
                 style={{ backgroundColor: "#931621" }}
               >
                 Anuluj
@@ -463,7 +488,7 @@ function AdminWorkshopDashboard() {
             </form>
           </ModalContent>
         </Modal>
-      )} */}
+      )}
     </div>
   );
 }
