@@ -12,6 +12,19 @@ const ButtonContainer = styled.div`
   gap: 10px;
 `;
 
+const Button = styled.button`
+  background-color: #00509e;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  margin: 5px;
+  border-radius: 5px;
+  cursor: pointer;
+  &:hover {
+    background-color: #01295f;
+  }
+`;
+
 const UserPageContainer = styled.div`
   padding: 20px;
 `;
@@ -370,11 +383,6 @@ function UserPage() {
     setIsModalOpen(true);
   };
 
-  // Zamknięcie modala
-  // const closeModal = () => {
-  //   setIsModalOpen(false);
-  // };
-
   // Handle car deletion
   const handleCarDelete = async (carId) => {
     try {
@@ -452,6 +460,34 @@ function UserPage() {
     setSelectedVehicle(null); // Clear selected vehicle
     setEditingCar(null); // Stop editing mode
   };
+
+  const deleteRecord = async (id) =>{
+    try{
+      await axios.delete(`http://localhost:5109/api/User/records/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      //setRecords((prevRecords) => prevRecords.filter((record) => record.id !== id));
+
+      setRecords((prevRecords) => {
+        const updatedRecords = prevRecords.filter((record) => record.id !== id);
+        
+        // Если удалена последняя запись из выбранных для отображения в модальном окне
+        if (selectedRecord && selectedRecord.some((record) => record.id === id)) {
+          setSelectedRecord(updatedRecords.filter((record) => {
+            // Фильтруем все записи с тем же временем (например, даты)
+            const clickedDate = new Date(selectedRecord[0].term.startDate);
+            clickedDate.setHours(0, 0, 0, 0);
+            return new Date(record.term.startDate).setHours(0, 0, 0, 0) === clickedDate.getTime();
+          }));
+        }
+  
+        return updatedRecords;
+      });
+    } catch (err) {
+      setError("Nie udało się usunąć terminu");
+    }
+  }
 
   // Handle new car addition
   const handleCarAddSubmit = async (e) => {
@@ -801,11 +837,22 @@ function UserPage() {
                           <strong>Warsztat:</strong>{" "}
                           {record.favour.autoRepairShop.address}
                         </p>
-                        <br/>
+                        <Button
+                          onClick={() => deleteRecord(record.id)}
+                          style={{ backgroundColor: "#931621" }}
+                        >
+                          Anuluj
+                        </Button>
                       </div>
                       
                     ))}
-                    <button onClick={closeModal}>Zamknij</button>
+                    <br/>
+                    <Button
+                      onClick={closeModal}
+                      style={{ backgroundColor: "#01295f" }}
+                    >
+                      Ukryj
+                    </Button>
                   </div>
                 </div>
               )}
