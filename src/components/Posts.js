@@ -104,7 +104,7 @@ const Posts = ({ workshopId }) => {
     if (posts.length > 0) {
       fetchComments();
     }
-  }, [posts]);
+  }, [posts.length]);
 
 
   // Обработка изменения комментария
@@ -118,17 +118,23 @@ const Posts = ({ workshopId }) => {
     if (!content) return;
 
     try {
-      const response = await axios.post(
+      await axios.post(
         `http://localhost:5109/api/Post/${postId}/comment`,
         { content },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+
+      const response = await axios.get(
+        `http://localhost:5109/api/Post/${postId}/comments`
+      )
+      console.log(response)
+
       // Обновление комментариев для поста, добавление нового комментария
       setPosts((prevPosts) =>
         prevPosts.map((post) => {
           if (post.id === postId) {
-            return { ...post, comments: [...post.comments, response.data] };
+            return { ...post, comments: response.data};
           }
           return post;
         })
@@ -176,18 +182,20 @@ const Posts = ({ workshopId }) => {
               <h5>Komentarze:</h5>
               {/* Показываем только последний комментарий или все комментарии */}
               {post.comments && post.comments.length > 0 ? (
-                <>
+                <div>
                   <div>
                     {showAllComments[post.id] ? (
                       // Если состояние раскрытия комментариев - все, показываем все комментарии
                       post.comments.map((comment) => (
                         <Comment key={comment.id}>
+                          <strong>{comment.username}: </strong>
                           <p>{comment.content}</p>
                         </Comment>
                       ))
                     ) : (
                       // Иначе, показываем только последний комментарий
                       <Comment key={post.comments[post.comments.length - 1].id}>
+                        <strong>{post.comments[post.comments.length - 1].username}: </strong>
                         <p>{post.comments[post.comments.length - 1].content}</p>
                       </Comment>
                     )}
@@ -196,7 +204,7 @@ const Posts = ({ workshopId }) => {
                   <Button onClick={() => toggleComments(post.id)}>
                     {showAllComments[post.id] ? 'Ukryj komentarze' : 'Pokaż wszystkie komentarze'}
                   </Button>
-                </>
+                </div>
               ) : (
                 <p>Brak komentarzy</p>
               )}
