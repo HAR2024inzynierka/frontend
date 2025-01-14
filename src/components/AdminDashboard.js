@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
+import  { jwtDecode } from "jwt-decode";
 
 const Container = styled.div`
   padding: 20px;
@@ -82,24 +83,10 @@ function AdminDashboard() {
     address: "",
     phoneNumber: "",
   });
-  const [selectedWorkshop, setSelectedWorkshop] = useState(null); // Warsztat do wyświetlenia szczegółów
-  const [editingWorkshop, setEditingWorkshop] = useState(null);
-  const [terms, setTerms] = useState([]);
-  const [favours, setFavours] = useState([]);
-  const [newTerm, setNewTerm] = useState({
-    startDate: "",
-    endDate: "",
-    availability: true,
-  });
-  const [newFavour, setNewFavour] = useState({
-    typeName: "",
-    description: "",
-    price: "",
-  });
-  const [selectedDate, setSelectedDate] = useState("");
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
   const [records, setRecords] = useState([]);
+  const [accessDenied, setAccessDenied] = useState(true);
 
   const handleDetailsClick = (workshop) => {
     navigate("/admin/workshop-dashboard", { state: { workshop } });
@@ -111,6 +98,12 @@ function AdminDashboard() {
       try {
         if (!token) {
           throw new Error("Brak tokena w localStorage");
+        }
+
+        const decodedToken = jwtDecode(token);
+        if (decodedToken.role === "1") {
+          setAccessDenied(false);
+          //return;
         }
 
         const response = await axios.get(
@@ -216,6 +209,11 @@ function AdminDashboard() {
       alert("Nie udało się zakończyć usługi.");
     }
   };
+
+
+  if(accessDenied){
+    return <p>Access Denied</p>
+  }
 
   return (
     <Container>
