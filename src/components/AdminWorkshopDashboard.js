@@ -90,10 +90,17 @@ function AdminWorkshopDashboard() {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { workshop } = location.state || {};
+  const { workshop, setWorkshop } = location.state || {};
   const [showTerms, setShowTerms] = useState(false);
   const [isEditingWorkshop, setIsEditingWorkshop] = useState(false);
   const [editingWorkshop, setEditingWorkshop] = useState(null);
+  const [newPost, setNewPost] = useState({
+    title: "",
+    content: "",
+  });
+  const [posts, setPosts] = useState([]);
+  const [isEditingPost, setIsEditingPost] = useState(false);
+  const [editingPost, setEditingPost] = useState(null);
 
   useEffect(() => {
     const fetchDetailsForWorkshop = async (id) => {
@@ -107,15 +114,20 @@ function AdminWorkshopDashboard() {
           `http://localhost:5109/api/AutoRepairShop/${id}/favours`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
+        const postsResponse = await axios.get(
+          `http://localhost:5109/api/AutoRepairShop/${id}/posts`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         setTerms(termsResponse.data);
         setFavours(favoursResponse.data);
+        setPosts(postsResponse.data);
       } catch {
         setError("Nie udało się pobrać szczegółów warsztatu.");
       }
     };
-
+    console.log(workshop);
     fetchDetailsForWorkshop(workshop.id);
-  }, [token]);
+  }, [token, workshop]);
 
 
   const handleDeleteTerm = async (id) => {
@@ -245,7 +257,6 @@ function AdminWorkshopDashboard() {
     };
 
     try {
-
       await axios.post(
         `http://localhost:5109/api/admin/Favour/add`,
         preparedFavour,
@@ -265,7 +276,7 @@ function AdminWorkshopDashboard() {
     }
   };
 
-  const handleOpenEditModal = () => {
+  const handleOpenEditWorkshopModal = () => {
     setEditingWorkshop({
       email: workshop.email,
       address: workshop.address,
@@ -273,6 +284,106 @@ function AdminWorkshopDashboard() {
     });
     setIsEditingWorkshop(true);
   };
+
+  const handleOpenEditPostModal = async (id) => {
+    try{
+      const response = await axios.get(
+        `http://localhost:5109/api/Post/${id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+  
+      const post = response.data;
+      setEditingPost({
+        id: post.id,
+        title: post.title,
+        content: post.content,
+      });
+      setIsEditingPost(true);
+    } catch (error) {
+      setError("Nie udało się edytować postu");
+    }
+    
+  };
+
+  const handleAddPost = async () => {
+
+    const preparedPost = {
+      ...newPost, 
+      autoRepairShopId: workshop.id,
+    };
+
+    try {
+      await axios.post(
+        "http://localhost:5109/api/admin/post",
+        preparedPost,
+        {
+          headers: { 
+            Authorization: `Bearer ${token}`, },
+        }
+      );
+
+      const updatedPosts = await axios.get(
+        `http://localhost:5109/api/AutoRepairShop/${workshop.id}/posts`,
+        {
+          headers: { Authorization: `Bearer ${token}`, },
+        }
+      );
+
+      setPosts(updatedPosts.data);
+      setNewPost({ title: "", content: "", autoRepairShopId: "" });
+    } catch (err) {
+      setError("Nie udało się dodać postu.");
+    }
+  };
+
+  const handleEditPost = async (id) => {
+    const preparedPost = {
+      title: editingPost.title,
+      content: editingPost.content,
+      autoRepairShopId: workshop.id,
+    };
+
+    try {
+      
+      setIsEditingPost(false);
+      await axios.put(
+        `http://localhost:5109/api/admin/post/${id}`,
+        preparedPost,
+        {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+          }
+        }
+      );
+      const updatedPosts = await axios.get(
+        `http://localhost:5109/api/AutoRepairShop/${workshop.id}/posts`,
+        {
+          headers: { Authorization: `Bearer ${token}`, },
+        }
+      );
+      
+      setPosts(updatedPosts.data);
+
+    } catch (err) {
+      setError("Nie udało się zaktualizować warsztatu.");
+    }
+  };
+
+  const handleDeletePost = async (id) => {
+    try{
+      await axios.delete(`http://localhost:5109/api/admin/post/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setPosts((prevPosts) => prevPosts.filter((post) => post.id !== id));
+    } catch (err) {
+      setError("Nie udało się usunąć usługi");
+    }
+  };
+
+  const handelClickMe = async (id) =>{
+    console.log(id)
+  }
 
   return (
     <div>
@@ -413,9 +524,62 @@ function AdminWorkshopDashboard() {
               <Button onClick={handleAddFavour}>Dodaj Usługę</Button>
             </div>
           </div>
+
+          <div>
+          <h3>Posty</h3>
+            <Table>
+              <thead>
+                <tr>
+                  <TableHeader>ID</TableHeader>
+                  <TableHeader>Tytuł</TableHeader>
+                  <TableHeader>Treść</TableHeader>
+                  <TableHeader></TableHeader>
+                </tr>
+              </thead>
+              <tbody>
+                {posts.map((post) => (
+                  <tr key={post.id}>
+                    <TableCell>{post.id}</TableCell>
+                    <TableCell>{post.title}</TableCell>
+                    <TableCell>{post.content}</TableCell>
+                    <TableCell>
+                    <Button onClick={() => handleOpenEditPostModal(post.id)}>
+                      Edytuj
+                    </Button>
+                    <Button
+                      onClick={() => handleDeletePost(post.id)}
+                      style={{ backgroundColor: "#931621" }}
+                    >
+                      Usuń
+                    </Button>
+                    </TableCell>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+            <input
+              type="text"
+              placeholder="Tytuł"
+              value={newPost.title}
+              onChange={(e) =>
+                setNewPost({ ...newPost, title: e.target.value })
+              }
+            />
+            <input
+              type="text"
+              placeholder="Treść"
+              value={newPost.content}
+              onChange={(e) =>
+                setNewPost({ ...newPost, content: e.target.value })
+              }
+            />
+            <div>
+              <Button onClick={()=>handleAddPost()}>Dodaj Post</Button>
+            </div>
+          </div>
           
           <Button
-            onClick={handleOpenEditModal}
+            onClick={handleOpenEditWorkshopModal}
             style={{ backgroundColor: "#00509e" }}
           >
             Edytuj
@@ -481,6 +645,49 @@ function AdminWorkshopDashboard() {
               <Button onClick={handleEditWorkshop}>Zapisz</Button>
               <Button
                 onClick={() => setIsEditingWorkshop(false)}
+                style={{ backgroundColor: "#931621" }}
+              >
+                Anuluj
+              </Button>
+            </form>
+          </ModalContent>
+        </Modal>
+      )}
+      {isEditingPost && (
+        <Modal>
+          <ModalContent>
+            <h2>Edytuj Post</h2>
+            <form>
+              <div>
+                <label>Tytuł:</label>
+                <input
+                  type="text"
+                  value={editingPost.title}
+                  onChange={(e) =>
+                    setEditingPost({
+                      ...editingPost,
+                      title: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <label>Treść:</label>
+                <input
+                  type="text"
+                  value={editingPost.content}
+                  onChange={(e) =>
+                    setEditingPost({
+                      ...editingPost,
+                      content: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <Button onClick={() => handleEditPost(editingPost.id)}>Zapisz</Button>
+              {/* <Button onClick={() => handelClickMe(editingPost.id)}>Zapisz</Button> */}
+              <Button
+                onClick={() => setIsEditingPost(false)}
                 style={{ backgroundColor: "#931621" }}
               >
                 Anuluj
