@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import styled from 'styled-components';
+import {jwtDecode} from 'jwt-decode';
 
 const PostWrapper = styled.div`
   background: #fff;
@@ -53,20 +54,28 @@ const Button = styled.button`
   }
 `;
 
-const LikeButton = styled.button`
+const LikeButton = styled.button.withConfig({
+  shouldForwardProp: (prop) => prop !== 'liked',
+})`
   background-color: transparent;
   border: none;
   cursor: pointer;
-  color: ${props => (props.liked ? '#ff5722' : '#007bff')};
+  color: ${(props) => (props.liked ? '#ff5722' : '#007bff')};
   font-size: 20px;
+  margin-right: 8px;
 `;
 
 const Posts = ({ workshopId }) => {
   const [posts, setPosts] = useState([]);
   const [newComments, setNewComments] = useState('');
-  const [likedPosts, setLikedPosts] = useState([]);
   const [showAllComments, setShowAllComments] = useState({}); 
   const token = localStorage.getItem('token');
+  const [editingComment, setEditingComment] = useState(null); // ID редактируемого комментария
+  const [editingContent, setEditingContent] = useState('');
+  const [likedPosts, setLikedPosts] = useState({});
+  const [likeCounts, setLikeCounts] = useState({});
+
+  const userId = token ? jwtDecode(token).nameid : null;
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -106,6 +115,96 @@ const Posts = ({ workshopId }) => {
     }
   }, [posts.length]);
 
+  // useEffect(() => {
+  //   const fetchLikes = async () => {
+  //     try {
+  //       const updatedLikedPosts = {};
+  //       const updatedLikeCounts = {};
+
+  //       for (const post of posts) {
+  //         const [isLikedResponse, countLikesResponse] = await Promise.all([
+  //           axios.get(`http://localhost:5109/api/Post/${post.id}/isLiked`, {
+  //             headers: { Authorization: `Bearer ${token}` },
+  //           }),
+  //           axios.get(`http://localhost:5109/api/Post/${post.id}/likeCount`),
+  //         ]);
+
+  //         updatedLikedPosts[post.id] = isLikedResponse.data; // true/false
+  //         updatedLikeCounts[post.id] = countLikesResponse.data; // number
+  //       }
+
+  //       setLikedPosts(updatedLikedPosts);
+  //       setLikeCounts(updatedLikeCounts);
+  //     } catch (err) {
+  //       console.error('Error fetching likes:', err);
+  //     }
+  //   };
+
+  //   if (posts.length > 0) {
+  //     fetchLikes();
+  //   }
+  // }, [posts, token]);
+
+  useEffect(() => {
+    const fetchLikes = async () => {
+      try {
+        const updatedLikedPosts = {};
+        const updatedLikeCounts = {};
+  
+        for (const post of posts) {
+          // Запрос количества лайков для поста
+          const countLikesResponse = await axios.get(`http://localhost:5109/api/Post/${post.id}/likeCount`);
+          updatedLikeCounts[post.id] = countLikesResponse.data; // Количество лайков
+  
+          // Запрос на проверку, залайкан ли пост, только если пользователь авторизован
+          if (token) {
+            try {
+              const isLikedResponse = await axios.get(`http://localhost:5109/api/Post/${post.id}/isLiked`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              updatedLikedPosts[post.id] = isLikedResponse.data; // true/false
+            } catch (err) {
+              console.error(`Error checking if post ${post.id} is liked:`, err);
+              updatedLikedPosts[post.id] = false; // По умолчанию не лайкнуто
+            }
+          }
+        }
+  
+        setLikedPosts(updatedLikedPosts);
+        setLikeCounts(updatedLikeCounts);
+      } catch (err) {
+        console.error('Error fetching likes:', err);
+      }
+    };
+  
+    if (posts.length > 0) {
+      fetchLikes();
+    }
+  }, [posts, token]);
+
+  const handleLikeToggle = async (postId) => {
+    try {
+      const isLiked = likedPosts[postId];
+
+      if (isLiked) {
+        await axios.delete(`http://localhost:5109/api/Post/${postId}/like`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setLikedPosts((prev) => ({ ...prev, [postId]: false }));
+        setLikeCounts((prev) => ({ ...prev, [postId]: prev[postId] - 1 }));
+      } else {
+        await axios.post(`http://localhost:5109/api/Post/${postId}/like`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${token}` } 
+          });
+        setLikedPosts((prev) => ({ ...prev, [postId]: true }));
+        setLikeCounts((prev) => ({ ...prev, [postId]: prev[postId] + 1 }));
+      }
+    } catch (err) {
+      console.error('Error toggling like:', err);
+    }
+  };
 
   // Обработка изменения комментария
   const handleCommentChange = (postId) => (e) => {
@@ -147,6 +246,60 @@ const Posts = ({ workshopId }) => {
     }
   };
 
+  const handleDeleteComment = async (postId, commentId) => {
+    try {
+      await axios.delete(`http://localhost:5109/api/Post/${postId}/comment/${commentId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setPosts((prevPosts) =>
+        prevPosts.map((post) =>
+          post.id === postId
+            ? {
+                ...post,
+                comments: post.comments.filter((comment) => comment.id !== commentId),
+              }
+            : post
+        )
+      );
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+    }
+  };
+
+  const handleEditComment = (comment) => {
+    setEditingComment(comment.id); // Устанавливаем ID редактируемого комментария
+    setEditingContent(comment.content); // Устанавливаем начальный текст комментария
+  };
+
+  const handleSaveEditComment = async (postId, commentId) => {
+    try {
+      await axios.put(
+        `http://localhost:5109/api/Post/${postId}/comment/${commentId}`,
+        { content: editingContent },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setPosts((prevPosts) =>
+        prevPosts.map((post) =>
+          post.id === postId
+            ? {
+                ...post,
+                comments: post.comments.map((comment) =>
+                  comment.id === commentId ? { ...comment, content: editingContent } : comment
+                ),
+              }
+            : post
+        )
+      );
+
+      setEditingComment(null); // Сброс редактируемого комментария
+      setEditingContent(''); // Очистка текста редактирования
+    } catch (error) {
+      console.error('Error updating comment:', error);
+    }
+  };
+
   const toggleComments = (postId) => {
     setShowAllComments((prev) => ({
       ...prev,
@@ -165,6 +318,15 @@ const Posts = ({ workshopId }) => {
             <Title>{post.title}</Title>
             <Content>{post.content}</Content>
             
+            <LikeButton
+              liked={likedPosts[post.id]}
+              onClick={() => handleLikeToggle(post.id)}
+            >
+              {likedPosts[post.id] ? '❤️' : '🤍'}
+            </LikeButton>
+
+            {/* Количество лайков */}
+            <span>{likeCounts[post.id] || 0} likes</span>
 
             <CommentsSection>
 
@@ -189,7 +351,37 @@ const Posts = ({ workshopId }) => {
                       post.comments.map((comment) => (
                         <Comment key={comment.id}>
                           <strong>{comment.username}: </strong>
-                          <p>{comment.content}</p>
+                          {editingComment === comment.id ? (
+                            <>
+                              <input
+                                type="text"
+                                value={editingContent}
+                                onChange={(e) => setEditingContent(e.target.value)}
+                              />
+                              <Button
+                                onClick={() => handleSaveEditComment(post.id, comment.id)}
+                              >
+                                Zapisz
+                              </Button>
+                            </>
+                          ) : (
+                            <p>{comment.content}</p>
+                          )}
+                          {comment.userId == userId && (
+                            <>
+                            <Button
+                              style={{  marginRight: '8px', backgroundColor: '#931621', color: 'white' }}
+                              onClick={() => handleDeleteComment(post.id, comment.id)}
+                            >
+                              Usuń
+                            </Button>
+                             {editingComment !== comment.id && (
+                              <Button onClick={() => handleEditComment(comment)}>
+                                Edytuj
+                              </Button>
+                            )}
+                            </>
+                          )}
                         </Comment>
                       ))
                     ) : (
