@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
-import  { jwtDecode } from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
+
+//Stylizowane komponenty
 
 const Container = styled.div`
   padding: 20px;
@@ -74,6 +76,7 @@ const ModalContent = styled.div`
 `;
 
 function AdminDashboard() {
+  // State przechowujący dane użytkowników, warsztatów, błędów, modalów i zapisów
   const [users, setUsers] = useState([]);
   const [workshops, setWorkshops] = useState([]);
   const [error, setError] = useState(null);
@@ -88,11 +91,12 @@ function AdminDashboard() {
   const [records, setRecords] = useState([]);
   const [accessDenied, setAccessDenied] = useState(true);
 
+  // Funkcja otwierająca szczegóły warsztatu po kliknięciu
   const handleDetailsClick = (workshop) => {
     navigate("/admin/workshop-dashboard", { state: { workshop } });
   };
 
-  // Fetch users and workshops
+  // Fetch użytkowników i warsztatów
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -100,12 +104,13 @@ function AdminDashboard() {
           throw new Error("Brak tokena w localStorage");
         }
 
+        // Sprawdzenie roli użytkownika: 1 - admin, 0 - zwykły użytkownik
         const decodedToken = jwtDecode(token);
         if (decodedToken.role === "1") {
           setAccessDenied(false);
-          //return;
         }
 
+        // Pobranie listy użytkowników
         const response = await axios.get(
           "http://localhost:5109/api/admin/users",
           {
@@ -114,6 +119,7 @@ function AdminDashboard() {
             },
           }
         );
+        // Pobranie zapisów
         const recordsResponse = await axios.get(
           `http://localhost:5109/api/admin/Record`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -132,6 +138,7 @@ function AdminDashboard() {
           throw new Error("Brak tokena w localStorage");
         }
 
+        // Pobranie listy warsztatów
         const response = await axios.get(
           "http://localhost:5109/api/AutoRepairShop/workshops",
           {
@@ -151,52 +158,56 @@ function AdminDashboard() {
     fetchWorkshops();
   }, [token]);
 
-  // Add Workshop
+  // Dodawanie warsztatu
   const handleAddWorkshop = async (e) => {
     if (e) e.preventDefault();
     try {
+      // Wysyłanie danych nowego warsztatu do API
       await axios.post(
         "http://localhost:5109/api/admin/workshop",
         newWorkshop,
         {
-          headers: { 
-            Authorization: `Bearer ${token}`, },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
+      // Odświeżenie listy warsztatów
       const updatedWorkshops = await axios.get(
         "http://localhost:5109/api/AutoRepairShop/workshops",
         {
-          headers: { Authorization: `Bearer ${token}`, },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
       setWorkshops(updatedWorkshops.data);
-      setIsAddModalOpen(false);
-      setNewWorkshop({ email: "", address: "", phoneNumber: "" });
+      setIsAddModalOpen(false); // Zamknięcie modalu po dodaniu warsztatu
+      setNewWorkshop({ email: "", address: "", phoneNumber: "" });  // Resetowanie formularza
     } catch (err) {
       setError("Nie udało się dodać warsztatu.");
     }
   };
 
+   // Funkcja do zakończenia zapisu
   const handleCompleteRecord = async (recordId) => {
     try {
       const response = await axios.put(
         `http://localhost:5109/api/admin/Record/complete/${recordId}`,
         {},
         {
-          headers: { 
+          headers: {
             Authorization: `Bearer ${token}`,
-            Accept: '*/*',
-          }
+            Accept: "*/*",
+          },
         }
       );
       if (response.status === 200) {
-        // Обновляем список записей после успешного завершения
+        // Aktualizacja zapisu po zakończeniu 
         setRecords((prevRecords) =>
           prevRecords.map((record) =>
             record.id === recordId
-              ? { ...record, completionDate: new Date().toISOString() } // Добавляем дату завершения
+              ? { ...record, completionDate: new Date().toISOString() }
               : record
           )
         );
@@ -210,9 +221,9 @@ function AdminDashboard() {
     }
   };
 
-
-  if(accessDenied){
-    return <p>Access Denied</p>
+  // Jeśli użytkownik nie ma uprawnień, pokazujemy komunikat o odmowie dostępu
+  if (accessDenied) {
+    return <p>Access Denied</p>;
   }
 
   return (
@@ -333,46 +344,50 @@ function AdminDashboard() {
           </ModalContent>
         </Modal>
       )}
-      <div>
-  <h3>Zapisy</h3>
-  <Table>
-    <thead>
-      <tr>
-        <TableHeader>ID</TableHeader>
-        <TableHeader>Pojazd</TableHeader>
-        <TableHeader>Usługa</TableHeader>
-        <TableHeader>Koszt</TableHeader>
-        <TableHeader>Data Rozpoczęcia</TableHeader>
-        <TableHeader>Data Zakończenia</TableHeader>
-      </tr>
-    </thead>
-    <tbody>
-      {records.map((record) => (
-        <tr key={record.id}>
-          <TableCell>{record.id}</TableCell>
-          <TableCell>
-            {record.vehicle.brand} {record.vehicle.model} (
-            {record.vehicle.registrationNumber})
-          </TableCell>
-          <TableCell>{record.favour.typeName}</TableCell>
-          <TableCell>{record.favour.price} zł</TableCell>
-          <TableCell>{new Date(record.term.startDate).toLocaleString()}</TableCell>
-          <TableCell>{new Date(record.term.endDate).toLocaleString()}</TableCell>
-          <TableCell>
-            {/* Кнопка завершения записи */}
-            <Button
-              onClick={() => handleCompleteRecord(record.id)}
-              disabled={!!record.completionDate} // Блокируем кнопку, если услуга уже завершена
-            >
-              {record.completionDate ? "Ukończono" : "Zakończ"}
-            </Button>
-          </TableCell>
-        </tr>
-      ))}
-    </tbody>
-  </Table>
-</div>
 
+      {/* Zapisy */}
+      <div>
+        <h3>Zapisy</h3>
+        <Table>
+          <thead>
+            <tr>
+              <TableHeader>ID</TableHeader>
+              <TableHeader>Pojazd</TableHeader>
+              <TableHeader>Usługa</TableHeader>
+              <TableHeader>Koszt</TableHeader>
+              <TableHeader>Data Rozpoczęcia</TableHeader>
+              <TableHeader>Data Zakończenia</TableHeader>
+            </tr>
+          </thead>
+          <tbody>
+            {records.map((record) => (
+              <tr key={record.id}>
+                <TableCell>{record.id}</TableCell>
+                <TableCell>
+                  {record.vehicle.brand} {record.vehicle.model} (
+                  {record.vehicle.registrationNumber})
+                </TableCell>
+                <TableCell>{record.favour.typeName}</TableCell>
+                <TableCell>{record.favour.price} zł</TableCell>
+                <TableCell>
+                  {new Date(record.term.startDate).toLocaleString()}
+                </TableCell>
+                <TableCell>
+                  {new Date(record.term.endDate).toLocaleString()}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    onClick={() => handleCompleteRecord(record.id)}
+                    disabled={!!record.completionDate}  // Blokowanie przycisku, jeśli usługa już zakończona
+                  >
+                    {record.completionDate ? "Ukończono" : "Zakończ"}
+                  </Button>
+                </TableCell>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </div>
     </Container>
   );
 }

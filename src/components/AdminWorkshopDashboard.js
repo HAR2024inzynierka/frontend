@@ -1,18 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import styled from "styled-components";
-import { useNavigate, useLocation  } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
-const Container = styled.div`
-  padding: 20px;
-`;
-
-const Title = styled.h1`
-  font-size: 24px;
-  font-weight: bold;
-  color: #01295f;
-  margin-bottom: 20px;
-`;
+//Stylizowane komponenty
 
 const Table = styled.table`
   width: 100%;
@@ -32,11 +23,6 @@ const TableCell = styled.td`
   padding: 10px;
   border: 1px solid #ddd;
   text-align: left;
-`;
-
-const ErrorMessage = styled.div`
-  color: red;
-  margin-top: 20px;
 `;
 
 const Button = styled.button`
@@ -73,51 +59,57 @@ const ModalContent = styled.div`
 `;
 
 function AdminWorkshopDashboard() {
-  const [terms, setTerms] = useState([]);
-  const [favours, setFavours] = useState([]);
+  // Stany do przechowywania danych warsztatów, terminów, usług, postów i błędów
+  const [terms, setTerms] = useState([]); // Lista terminów warsztatu
+  const [favours, setFavours] = useState([]); // Lista usług warsztatu
   const [newTerm, setNewTerm] = useState({
     startDate: "",
     endDate: "",
     availability: true,
-  });
+  }); // Stan dla nowego terminu
   const [newFavour, setNewFavour] = useState({
     typeName: "",
     description: "",
     price: "",
-  });
-  const [selectedDate, setSelectedDate] = useState("");
-  const token = localStorage.getItem("token");
-  const [error, setError] = useState(null);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { workshop, setWorkshop } = location.state || {};
-  const [showTerms, setShowTerms] = useState(false);
-  const [isEditingWorkshop, setIsEditingWorkshop] = useState(false);
-  const [editingWorkshop, setEditingWorkshop] = useState(null);
+  }); // Stan dla nowej usługi
+  const [selectedDate, setSelectedDate] = useState(""); // Wybrana data dla dodania terminów
+  const token = localStorage.getItem("token"); // Token z localStorage
+  const [error, setError] = useState(null); // Stan dla błędów
+  const navigate = useNavigate(); // Hook do nawigacji
+  const location = useLocation(); // Hook do lokalizacji
+  const { workshop } = location.state || {}; // Pobranie danych warsztatu z lokalizacji
+  const [showTerms, setShowTerms] = useState(false); // Stan do kontrolowania widoczności terminów
+  const [isEditingWorkshop, setIsEditingWorkshop] = useState(false); // Stan do edytowania warsztatu
+  const [editingWorkshop, setEditingWorkshop] = useState(null); // Stan edytowanego warsztatu
   const [newPost, setNewPost] = useState({
     title: "",
     content: "",
-  });
-  const [posts, setPosts] = useState([]);
-  const [isEditingPost, setIsEditingPost] = useState(false);
-  const [editingPost, setEditingPost] = useState(null);
+  }); // Stan dla nowego postu
+  const [posts, setPosts] = useState([]); // Lista postów warsztatu
+  const [isEditingPost, setIsEditingPost] = useState(false); // Stan do edytowania postu
+  const [editingPost, setEditingPost] = useState(null); // Stan edytowanego postu
 
+  // Pobieranie szczegółów warsztatu
   useEffect(() => {
     const fetchDetailsForWorkshop = async (id) => {
       try {
-
+        // Wysłanie żądania do API w celu pobrania terminów
         const termsResponse = await axios.get(
           `http://localhost:5109/api/AutoRepairShop/${id}/terms`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
+        // Wysłanie żądania do API w celu pobrania usług
         const favoursResponse = await axios.get(
           `http://localhost:5109/api/AutoRepairShop/${id}/favours`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
+        // Wysłanie żądania do API w celu pobrania postów
         const postsResponse = await axios.get(
           `http://localhost:5109/api/AutoRepairShop/${id}/posts`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
+
+        // Ustawianie danych w stanach
         setTerms(termsResponse.data);
         setFavours(favoursResponse.data);
         setPosts(postsResponse.data);
@@ -125,38 +117,46 @@ function AdminWorkshopDashboard() {
         setError("Nie udało się pobrać szczegółów warsztatu.");
       }
     };
-    console.log(workshop);
+
     fetchDetailsForWorkshop(workshop.id);
   }, [token, workshop]);
 
-
+  // Funkcja usuwająca termin warsztatu
   const handleDeleteTerm = async (id) => {
-    try{
+    try {
+      // Wysłanie żądania do API w celu usunięcia terminu
       await axios.delete(`http://localhost:5109/api/admin/Term/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      // Aktualizacja stanu, usunięcie terminu z listy
       setTerms((prevTerms) => prevTerms.filter((term) => term.id !== id));
     } catch (err) {
       setError("Nie udało się usunąć terminu");
     }
   };
 
+  // Funkcja usuwająca usługę warsztatu
   const handleDeleteFavour = async (id) => {
-    try{
+    try {
+      // Wysłanie żądania do API w celu usunięcia usługi
       await axios.delete(`http://localhost:5109/api/admin/Favour/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setFavours((prevFavours) => prevFavours.filter((favour) => favour.id !== id));
+      // Aktualizacja stanu, usunięcie usługi z listy
+      setFavours((prevFavours) =>
+        prevFavours.filter((favour) => favour.id !== id)
+      );
     } catch (err) {
       setError("Nie udało się usunąć usługi");
     }
   };
 
-  // Delete Workshop
+  // Funkcja usuwająca warsztat
   const handleDeleteWorkshop = async (id) => {
     try {
+      // Wysłanie żądania do API w celu usunięcia warsztatu
       await axios.delete(`http://localhost:5109/api/admin/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -167,9 +167,11 @@ function AdminWorkshopDashboard() {
     }
   };
 
+  // Funkcja edytująca dane warsztatu
   const handleEditWorkshop = async (e) => {
     if (e) e.preventDefault();
     try {
+      // Wysłanie żądania do API w celu edytowania warsztatu
       await axios.put(
         `http://localhost:5109/api/admin/${workshop.id}`,
         editingWorkshop,
@@ -178,38 +180,42 @@ function AdminWorkshopDashboard() {
         }
       );
 
+      // Zamknięcie trybu edycji
       setIsEditingWorkshop(false);
 
-
+      // Pobranie nowych danych warsztatu po edycji
       const response = await axios.get(
         `http://localhost:5109/api/AutoRepairShop/${workshop.id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
-      )
+      );
 
+      // Zaktualizowanie stanu w lokalizacji z nowymi danymi warsztatu
       navigate(location.pathname, {
-        state: { workshop: response.data },  // Обновляем state с новыми данными
+        state: { workshop: response.data },
       });
-
     } catch (err) {
       setError("Nie udało się zaktualizować warsztatu.");
     }
   };
 
-  // Add Term
+  // Funkcja dodająca nowy termin do warsztatu
   const handleAddTerm = async () => {
     try {
+      // Wysłanie żądania do API w celu dodania terminu
       await axios.post(
         "http://localhost:5109/api/admin/Term/add",
         { ...newTerm, autoServiceId: workshop.id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      // Pobranie zaktualizowanej listy terminów
       const response = await axios.get(
         `http://localhost:5109/api/AutoRepairShop/${workshop.id}/terms`,
         { headers: { Authorization: `Bearer ${token}` } }
-      )
+      );
+
       setTerms(response.data);
       setNewTerm({ startDate: "", endDate: "", availability: true });
     } catch {
@@ -217,6 +223,7 @@ function AdminWorkshopDashboard() {
     }
   };
 
+  // Funkcja dodająca terminy dla wybranego dnia
   const handleAddTermsForDay = async () => {
     if (!selectedDate) {
       alert("Wybierz datę");
@@ -224,15 +231,17 @@ function AdminWorkshopDashboard() {
     }
 
     try {
+      // Wysłanie żądania do API w celu dodania terminów na wybrany dzień
       await axios.post(
         "http://localhost:5109/api/admin/Term/term-for-day",
         {
           autoServiceId: workshop.id,
-          day: selectedDate, // Отправляем только дату
+          day: selectedDate,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      // Pobranie zaktualizowanej listy terminów
       const response = await axios.get(
         `http://localhost:5109/api/AutoRepairShop/${workshop.id}/terms`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -242,31 +251,33 @@ function AdminWorkshopDashboard() {
       setTerms(newTerms);
 
       alert("Terminy zostały pomyślnie dodane!");
-      console.log("Odpowiedź serwera:", response.data);
     } catch (error) {
       console.error("Błąd podczas dodawania terminów:", error);
       alert("Błąd podczas dodawania terminów");
     }
   };
 
+  // Funkcja dodająca nową usługę do warsztatu
   const handleAddFavour = async () => {
     const preparedFavour = {
       ...newFavour,
-      price: parseFloat(newFavour.price), // Upewniamy się, że cena jest liczbą
+      price: parseFloat(newFavour.price),
       autoServiceId: workshop.id,
     };
 
     try {
+      // Wysłanie żądania do API w celu dodania usługi
       await axios.post(
         `http://localhost:5109/api/admin/Favour/add`,
         preparedFavour,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      // Pobranie zaktualizowanej listy usług
       const response = await axios.get(
         `http://localhost:5109/api/AutoRepairShop/${workshop.id}/favours`,
         { headers: { Authorization: `Bearer ${token}` } }
-      )
+      );
 
       setFavours(response.data);
       setNewFavour({ typeName: "", description: "", price: "" }); // Reset formularza
@@ -276,6 +287,7 @@ function AdminWorkshopDashboard() {
     }
   };
 
+  // Funkcja otwierająca modal do edytowania warsztatu
   const handleOpenEditWorkshopModal = () => {
     setEditingWorkshop({
       email: workshop.email,
@@ -285,13 +297,14 @@ function AdminWorkshopDashboard() {
     setIsEditingWorkshop(true);
   };
 
+  // Funkcja otwierająca modal do edytowania postu
   const handleOpenEditPostModal = async (id) => {
-    try{
-      const response = await axios.get(
-        `http://localhost:5109/api/Post/${id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-  
+    try {
+      // Wysłanie żądania do API w celu pobrania postu
+      const response = await axios.get(`http://localhost:5109/api/Post/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       const post = response.data;
       setEditingPost({
         id: post.id,
@@ -302,30 +315,28 @@ function AdminWorkshopDashboard() {
     } catch (error) {
       setError("Nie udało się edytować postu");
     }
-    
   };
 
+  // Funkcja dodająca nowy post
   const handleAddPost = async () => {
-
     const preparedPost = {
-      ...newPost, 
+      ...newPost,
       autoRepairShopId: workshop.id,
     };
 
     try {
-      await axios.post(
-        "http://localhost:5109/api/admin/post",
-        preparedPost,
-        {
-          headers: { 
-            Authorization: `Bearer ${token}`, },
-        }
-      );
+      // Wysłanie żądania do API w celu dodania nowego postu
+      await axios.post("http://localhost:5109/api/admin/post", preparedPost, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
+      // Pobranie zaktualizowanej listy postów
       const updatedPosts = await axios.get(
         `http://localhost:5109/api/AutoRepairShop/${workshop.id}/posts`,
         {
-          headers: { Authorization: `Bearer ${token}`, },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
@@ -336,6 +347,7 @@ function AdminWorkshopDashboard() {
     }
   };
 
+  // Funkcja edytująca istniejący post
   const handleEditPost = async (id) => {
     const preparedPost = {
       title: editingPost.title,
@@ -344,33 +356,38 @@ function AdminWorkshopDashboard() {
     };
 
     try {
-      
+      // Zakończenie trybu edycji
       setIsEditingPost(false);
+
+      // Wysłanie żądania do API w celu zaktualizowania postu
       await axios.put(
         `http://localhost:5109/api/admin/post/${id}`,
         preparedPost,
         {
-          headers: { 
+          headers: {
             Authorization: `Bearer ${token}`,
-          }
+          },
         }
       );
+
+      // Pobranie zaktualizowanej listy postów
       const updatedPosts = await axios.get(
         `http://localhost:5109/api/AutoRepairShop/${workshop.id}/posts`,
         {
-          headers: { Authorization: `Bearer ${token}`, },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
-      
-      setPosts(updatedPosts.data);
 
+      setPosts(updatedPosts.data);
     } catch (err) {
       setError("Nie udało się zaktualizować warsztatu.");
     }
   };
 
+  // Funkcja usuwająca post
   const handleDeletePost = async (id) => {
-    try{
+    try {
+      // Wysłanie żądania do API w celu usunięcia postu
       await axios.delete(`http://localhost:5109/api/admin/post/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -380,10 +397,6 @@ function AdminWorkshopDashboard() {
       setError("Nie udało się usunąć usługi");
     }
   };
-
-  const handelClickMe = async (id) =>{
-    console.log(id)
-  }
 
   return (
     <div>
@@ -403,6 +416,8 @@ function AdminWorkshopDashboard() {
           <p>
             <strong>Numer Telefonu:</strong> {workshop.phoneNumber}
           </p>
+
+          {/* Sekcja Terminów */}
           <div>
             <h3>Terminy</h3>
             <Button onClick={() => setShowTerms((prev) => !prev)}>
@@ -426,18 +441,20 @@ function AdminWorkshopDashboard() {
                       <TableCell>{term.startDate}</TableCell>
                       <TableCell>{term.endDate}</TableCell>
                       <TableCell>
-                      <Button
-                        onClick={() => handleDeleteTerm(term.id)}
-                        style={{ backgroundColor: "#931621" }}
-                      >
-                        Usuń
-                      </Button>
-                    </TableCell>
+                        <Button
+                          onClick={() => handleDeleteTerm(term.id)}
+                          style={{ backgroundColor: "#931621" }}
+                        >
+                          Usuń
+                        </Button>
+                      </TableCell>
                     </tr>
                   ))}
                 </tbody>
               </Table>
             )}
+
+            {/* Formularz Dodawania Terminu */}
             <input
               type="datetime-local"
               value={newTerm.startDate}
@@ -455,7 +472,7 @@ function AdminWorkshopDashboard() {
             <Button onClick={handleAddTerm}>Dodaj Termin</Button>
             <br />
             <input
-              type="date" // Позволяет выбрать только дату
+              type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
             />
@@ -463,6 +480,8 @@ function AdminWorkshopDashboard() {
               Dodaj terminy na dzień
             </Button>
           </div>
+
+          {/* Sekcja Usług */}
           <div>
             <h3>Usługi</h3>
             <Table>
@@ -481,7 +500,7 @@ function AdminWorkshopDashboard() {
                     <TableCell>{favour.typeName}</TableCell>
                     <TableCell>{favour.price}</TableCell>
                     <TableCell>
-                    <Button
+                      <Button
                         onClick={() => handleDeleteFavour(favour.id)}
                         style={{ backgroundColor: "#931621" }}
                       >
@@ -492,6 +511,8 @@ function AdminWorkshopDashboard() {
                 ))}
               </tbody>
             </Table>
+
+            {/* Formularz Dodawania Usługi */}
             <input
               type="text"
               placeholder="Rodzaj Usługi"
@@ -520,13 +541,12 @@ function AdminWorkshopDashboard() {
                 })
               }
             />
-            <div>
-              <Button onClick={handleAddFavour}>Dodaj Usługę</Button>
-            </div>
+            <Button onClick={handleAddFavour}>Dodaj Usługę</Button>
           </div>
 
+          {/* Sekcja Postów */}
           <div>
-          <h3>Posty</h3>
+            <h3>Posty</h3>
             <Table>
               <thead>
                 <tr>
@@ -543,20 +563,22 @@ function AdminWorkshopDashboard() {
                     <TableCell>{post.title}</TableCell>
                     <TableCell>{post.content}</TableCell>
                     <TableCell>
-                    <Button onClick={() => handleOpenEditPostModal(post.id)}>
-                      Edytuj
-                    </Button>
-                    <Button
-                      onClick={() => handleDeletePost(post.id)}
-                      style={{ backgroundColor: "#931621" }}
-                    >
-                      Usuń
-                    </Button>
+                      <Button onClick={() => handleOpenEditPostModal(post.id)}>
+                        Edytuj
+                      </Button>
+                      <Button
+                        onClick={() => handleDeletePost(post.id)}
+                        style={{ backgroundColor: "#931621" }}
+                      >
+                        Usuń
+                      </Button>
                     </TableCell>
                   </tr>
                 ))}
               </tbody>
             </Table>
+
+            {/* Formularz Dodawania Postu */}
             <input
               type="text"
               placeholder="Tytuł"
@@ -573,11 +595,10 @@ function AdminWorkshopDashboard() {
                 setNewPost({ ...newPost, content: e.target.value })
               }
             />
-            <div>
-              <Button onClick={()=>handleAddPost()}>Dodaj Post</Button>
-            </div>
+            <Button onClick={() => handleAddPost()}>Dodaj Post</Button>
           </div>
-          
+
+          {/* Przyciski Edycji i Usuwania Warsztatu */}
           <Button
             onClick={handleOpenEditWorkshopModal}
             style={{ backgroundColor: "#00509e" }}
@@ -591,13 +612,15 @@ function AdminWorkshopDashboard() {
             Usuń
           </Button>
           <Button
-            onClick={() => navigate('/admin')}
+            onClick={() => navigate("/admin")}
             style={{ backgroundColor: "#01295f" }}
           >
             Zamknij
           </Button>
         </div>
       )}
+
+      {/* Modal Edytowania Warsztatu */}
       {isEditingWorkshop && (
         <Modal>
           <ModalContent>
@@ -653,6 +676,8 @@ function AdminWorkshopDashboard() {
           </ModalContent>
         </Modal>
       )}
+
+      {/* Modal Edytowania Postu */}
       {isEditingPost && (
         <Modal>
           <ModalContent>
@@ -684,8 +709,9 @@ function AdminWorkshopDashboard() {
                   }
                 />
               </div>
-              <Button onClick={() => handleEditPost(editingPost.id)}>Zapisz</Button>
-              {/* <Button onClick={() => handelClickMe(editingPost.id)}>Zapisz</Button> */}
+              <Button onClick={() => handleEditPost(editingPost.id)}>
+                Zapisz
+              </Button>
               <Button
                 onClick={() => setIsEditingPost(false)}
                 style={{ backgroundColor: "#931621" }}

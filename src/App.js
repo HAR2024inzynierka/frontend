@@ -11,7 +11,8 @@ import axios from "axios";
 import WorkshopPage from "./components/WorkshopPage";
 import Workshops from "./components/Workshops";
 
-// Styled Components
+//Stylizowane komponenty
+
 const AppContainer = styled.div`
   font-family: "Arial", sans-serif;
   text-align: left;
@@ -21,11 +22,6 @@ const AppContainer = styled.div`
   flex-direction: column;
   align-items: left;
   justify-content: left;
-`;
-
-const Title = styled.h1`
-  color: #333;
-  margin: 20px 0;
 `;
 
 const Navbar = styled.nav`
@@ -99,24 +95,24 @@ const MainContent = styled.div`
 `;
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [workshops, setWorkshops] = useState([]);
-  const [selectedWorkshop, setSelectedWorkshop] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // Stan przechowujący informację o autentykacji
+  const [workshops, setWorkshops] = useState([]); // Stan przechowujący listę warsztatów
 
+  // Pobranie tokenu z localStorage i sprawdzenie, czy użytkownik jest zalogowany
   useEffect(() => {
     const token = localStorage.getItem("token");
-    setIsAuthenticated(!!token);
+    setIsAuthenticated(!!token); // Ustawienie stanu autentykacji w zależności od istnienia tokenu
 
-    // Fetch workshops if the user is authenticated
     if (token) {
       const fetchWorkshops = async () => {
         try {
+          // Pobieranie listy warsztatów
           const response = await axios.get(
             "http://localhost:5109/api/AutoRepairShop/workshops"
           );
           setWorkshops(response.data);
         } catch (error) {
-          console.error("Error fetching workshops:", error);
+          console.error("Błąd podczas pobierania warsztatów:", error);
         }
       };
 
@@ -124,6 +120,7 @@ function App() {
     }
   }, []);
 
+  // Funkcja obsługująca wylogowanie
   const handleLogout = () => {
     localStorage.removeItem("token");
     setIsAuthenticated(false);

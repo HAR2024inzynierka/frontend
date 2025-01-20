@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import styled from 'styled-components';
-import {jwtDecode} from 'jwt-decode';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import styled from "styled-components";
+import { jwtDecode } from "jwt-decode";
+
+//Stylizowane komponenty
 
 const PostWrapper = styled.div`
   background: #fff;
@@ -55,35 +57,41 @@ const Button = styled.button`
 `;
 
 const LikeButton = styled.button.withConfig({
-  shouldForwardProp: (prop) => prop !== 'liked',
+  shouldForwardProp: (prop) => prop !== "liked",
 })`
   background-color: transparent;
   border: none;
   cursor: pointer;
-  color: ${(props) => (props.liked ? '#ff5722' : '#007bff')};
+  color: ${(props) => (props.liked ? "#ff5722" : "#007bff")};
   font-size: 20px;
   margin-right: 8px;
 `;
 
 const Posts = ({ workshopId }) => {
+  // Stany do przechowywania danych postów, polubień, komentarze 
   const [posts, setPosts] = useState([]);
-  const [newComments, setNewComments] = useState('');
-  const [showAllComments, setShowAllComments] = useState({}); 
-  const token = localStorage.getItem('token');
-  const [editingComment, setEditingComment] = useState(null); // ID редактируемого комментария
-  const [editingContent, setEditingContent] = useState('');
+  const [newComments, setNewComments] = useState("");
+  const [showAllComments, setShowAllComments] = useState({});
+  const token = localStorage.getItem("token");
+  const [editingComment, setEditingComment] = useState(null);
+  const [editingContent, setEditingContent] = useState("");
   const [likedPosts, setLikedPosts] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
 
+  // Dekodowanie identyfikatora użytkownika z tokena
   const userId = token ? jwtDecode(token).nameid : null;
 
+  // Pobieranie postów dla danego warsztatu
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const response = await axios.get(`http://localhost:5109/api/AutoRepairShop/${workshopId}/posts`);
+        // Wysłanie żądania do API w celu pobrania postów danego warsztatu
+        const response = await axios.get(
+          `http://localhost:5109/api/AutoRepairShop/${workshopId}/posts`
+        );
         setPosts(response.data);
       } catch (error) {
-        console.error('Error fetching posts:', error);
+        console.error("Error fetching posts:", error);
       }
     };
 
@@ -92,188 +100,181 @@ const Posts = ({ workshopId }) => {
     }
   }, [workshopId]);
 
-  // Загружаем комментарии для постов
+  // Pobieranie komentarzy dla każdego posta
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        // Для каждого поста можно отправить запрос для получения комментариев
+        // Pobranie komentarzy dla każdego posta w sposób równoległy
         const postsWithComments = await Promise.all(
           posts.map(async (post) => {
-            const response = await axios.get(`http://localhost:5109/api/Post/${post.id}/comments`);
+            const response = await axios.get(
+              `http://localhost:5109/api/Post/${post.id}/comments`
+            );
             return { ...post, comments: response.data };
           })
         );
-        setPosts(postsWithComments);  // Обновляем состояние с комментариями
+        setPosts(postsWithComments);
       } catch (error) {
-        console.error('Error fetching comments:', error);
+        console.error("Error fetching comments:", error);
       }
     };
 
-    // Если у нас есть посты, загружаем их комментарии
+    // Pobranie komentarzy tylko, gdy istnieją posty
     if (posts.length > 0) {
       fetchComments();
     }
   }, [posts.length]);
 
-  // useEffect(() => {
-  //   const fetchLikes = async () => {
-  //     try {
-  //       const updatedLikedPosts = {};
-  //       const updatedLikeCounts = {};
-
-  //       for (const post of posts) {
-  //         const [isLikedResponse, countLikesResponse] = await Promise.all([
-  //           axios.get(`http://localhost:5109/api/Post/${post.id}/isLiked`, {
-  //             headers: { Authorization: `Bearer ${token}` },
-  //           }),
-  //           axios.get(`http://localhost:5109/api/Post/${post.id}/likeCount`),
-  //         ]);
-
-  //         updatedLikedPosts[post.id] = isLikedResponse.data; // true/false
-  //         updatedLikeCounts[post.id] = countLikesResponse.data; // number
-  //       }
-
-  //       setLikedPosts(updatedLikedPosts);
-  //       setLikeCounts(updatedLikeCounts);
-  //     } catch (err) {
-  //       console.error('Error fetching likes:', err);
-  //     }
-  //   };
-
-  //   if (posts.length > 0) {
-  //     fetchLikes();
-  //   }
-  // }, [posts, token]);
-
+  // Pobieranie danych o polubieniach i ich liczbie
   useEffect(() => {
     const fetchLikes = async () => {
       try {
         const updatedLikedPosts = {};
         const updatedLikeCounts = {};
-  
+
         for (const post of posts) {
-          // Запрос количества лайков для поста
-          const countLikesResponse = await axios.get(`http://localhost:5109/api/Post/${post.id}/likeCount`);
-          updatedLikeCounts[post.id] = countLikesResponse.data; // Количество лайков
-  
-          // Запрос на проверку, залайкан ли пост, только если пользователь авторизован
+          // Pobranie liczby polubień dla posta
+          const countLikesResponse = await axios.get(
+            `http://localhost:5109/api/Post/${post.id}/likeCount`
+          );
+          updatedLikeCounts[post.id] = countLikesResponse.data;
+
+          // Sprawdzenie, czy użytkownik polubił dany post (jeśli zalogowany)
           if (token) {
             try {
-              const isLikedResponse = await axios.get(`http://localhost:5109/api/Post/${post.id}/isLiked`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
+              const isLikedResponse = await axios.get(
+                `http://localhost:5109/api/Post/${post.id}/isLiked`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
               updatedLikedPosts[post.id] = isLikedResponse.data; // true/false
             } catch (err) {
               console.error(`Error checking if post ${post.id} is liked:`, err);
-              updatedLikedPosts[post.id] = false; // По умолчанию не лайкнуто
+              updatedLikedPosts[post.id] = false; // Domyślnie brak polubienia
             }
           }
         }
-  
+
         setLikedPosts(updatedLikedPosts);
         setLikeCounts(updatedLikeCounts);
       } catch (err) {
-        console.error('Error fetching likes:', err);
+        console.error("Error fetching likes:", err);
       }
     };
-  
+
     if (posts.length > 0) {
       fetchLikes();
     }
   }, [posts, token]);
 
+  // Funkcja obsługująca polubienia/odlubienia postów
   const handleLikeToggle = async (postId) => {
     try {
       const isLiked = likedPosts[postId];
 
       if (isLiked) {
+        // Odlubienie posta
         await axios.delete(`http://localhost:5109/api/Post/${postId}/like`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setLikedPosts((prev) => ({ ...prev, [postId]: false }));
         setLikeCounts((prev) => ({ ...prev, [postId]: prev[postId] - 1 }));
       } else {
-        await axios.post(`http://localhost:5109/api/Post/${postId}/like`,
+        // Polubienie posta
+        await axios.post(
+          `http://localhost:5109/api/Post/${postId}/like`,
           {},
           {
-            headers: { Authorization: `Bearer ${token}` } 
-          });
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         setLikedPosts((prev) => ({ ...prev, [postId]: true }));
         setLikeCounts((prev) => ({ ...prev, [postId]: prev[postId] + 1 }));
       }
     } catch (err) {
-      console.error('Error toggling like:', err);
+      console.error("Error toggling like:", err);
     }
   };
 
-  // Обработка изменения комментария
+  // Obsługa zmiany treści nowego komentarza
   const handleCommentChange = (postId) => (e) => {
     setNewComments((prev) => ({ ...prev, [postId]: e.target.value }));
   };
 
-  // Добавление нового комментария
+  // Obsługa dodawania nowego komentarza
   const handleAddComment = async (postId) => {
     const content = newComments[postId]?.trim();
     if (!content) return;
 
     try {
+      // Wysłanie żądania do API w celu dodania komentarza
       await axios.post(
         `http://localhost:5109/api/Post/${postId}/comment`,
         { content },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-
+      // Pobranie zaktualizowanej listy komentarze
       const response = await axios.get(
         `http://localhost:5109/api/Post/${postId}/comments`
-      )
-      console.log(response)
+      );
+      console.log(response);
 
-      // Обновление комментариев для поста, добавление нового комментария
+      // Aktualizacja komentarzy do postu, dodanie nowego komentarza
       setPosts((prevPosts) =>
         prevPosts.map((post) => {
           if (post.id === postId) {
-            return { ...post, comments: response.data};
+            return { ...post, comments: response.data };
           }
           return post;
         })
       );
 
-      // Сброс значения поля ввода комментария для этого поста
-      setNewComments((prev) => ({ ...prev, [postId]: '' }));
+      setNewComments((prev) => ({ ...prev, [postId]: "" }));
     } catch (error) {
-      console.error('Error adding comment:', error);
+      console.error("Error adding comment:", error);
     }
   };
 
+  // Obsługa usuwania komentarza
   const handleDeleteComment = async (postId, commentId) => {
     try {
-      await axios.delete(`http://localhost:5109/api/Post/${postId}/comment/${commentId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Wysłanie żądania do API w celu usunięcia komentarza
+      await axios.delete(
+        `http://localhost:5109/api/Post/${postId}/comment/${commentId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       setPosts((prevPosts) =>
         prevPosts.map((post) =>
           post.id === postId
             ? {
                 ...post,
-                comments: post.comments.filter((comment) => comment.id !== commentId),
+                comments: post.comments.filter(
+                  (comment) => comment.id !== commentId
+                ),
               }
             : post
         )
       );
     } catch (error) {
-      console.error('Error deleting comment:', error);
+      console.error("Error deleting comment:", error);
     }
   };
 
+  // Rozpoczęcie edycji komentarza
   const handleEditComment = (comment) => {
-    setEditingComment(comment.id); // Устанавливаем ID редактируемого комментария
-    setEditingContent(comment.content); // Устанавливаем начальный текст комментария
+    setEditingComment(comment.id);
+    setEditingContent(comment.content);
   };
 
+  // Zapis edytowanego komentarza
   const handleSaveEditComment = async (postId, commentId) => {
     try {
+      // Wysłanie żądania do API w celu aktualizacji komentarza
       await axios.put(
         `http://localhost:5109/api/Post/${postId}/comment/${commentId}`,
         { content: editingContent },
@@ -286,7 +287,9 @@ const Posts = ({ workshopId }) => {
             ? {
                 ...post,
                 comments: post.comments.map((comment) =>
-                  comment.id === commentId ? { ...comment, content: editingContent } : comment
+                  comment.id === commentId
+                    ? { ...comment, content: editingContent }
+                    : comment
                 ),
               }
             : post
@@ -294,12 +297,13 @@ const Posts = ({ workshopId }) => {
       );
 
       setEditingComment(null); // Сброс редактируемого комментария
-      setEditingContent(''); // Очистка текста редактирования
+      setEditingContent(""); // Очистка текста редактирования
     } catch (error) {
-      console.error('Error updating comment:', error);
+      console.error("Error updating comment:", error);
     }
   };
 
+  // Przełączanie widoczności komentarzy dla posta
   const toggleComments = (postId) => {
     setShowAllComments((prev) => ({
       ...prev,
@@ -309,6 +313,7 @@ const Posts = ({ workshopId }) => {
 
   return (
     <div>
+      {/* Posty */}
       <h3>Posty</h3>
       {posts.length === 0 ? (
         <p>Brak postów</p>
@@ -317,91 +322,115 @@ const Posts = ({ workshopId }) => {
           <PostWrapper key={post.id}>
             <Title>{post.title}</Title>
             <Content>{post.content}</Content>
-            
+
+            {/* Przycisk polubienia */}
             <LikeButton
               liked={likedPosts[post.id]}
               onClick={() => handleLikeToggle(post.id)}
             >
-              {likedPosts[post.id] ? '❤️' : '🤍'}
+              {likedPosts[post.id] ? "❤️" : "🤍"}
             </LikeButton>
 
-            {/* Количество лайков */}
+            {/* Liczba polubień */}
             <span>{likeCounts[post.id] || 0} likes</span>
 
             <CommentsSection>
-
-            {token && (
+              {token && (
                 <>
+                  {/* Pole wprowadzania nowego komentarza */}
                   <CommentInput
-                    value={newComments[post.id] || ''}
+                    value={newComments[post.id] || ""}
                     onChange={handleCommentChange(post.id)}
                     placeholder="Dodaj komentarz"
                   />
-                  <Button onClick={() => handleAddComment(post.id)}>Dodaj komentarz</Button>
+                  <Button onClick={() => handleAddComment(post.id)}>
+                    Dodaj komentarz
+                  </Button>
                 </>
               )}
 
+              {/* Sekcja komentarzy */}
               <h5>Komentarze:</h5>
               {/* Показываем только последний комментарий или все комментарии */}
               {post.comments && post.comments.length > 0 ? (
                 <div>
                   <div>
                     {showAllComments[post.id] ? (
-                      // Если состояние раскрытия комментариев - все, показываем все комментарии
+                      // Jeśli użytkownik chce zobaczyć wszystkie komentarze, wyświetlamy je
                       post.comments.map((comment) => (
                         <Comment key={comment.id}>
                           <strong>{comment.username}: </strong>
                           {editingComment === comment.id ? (
                             <>
+                              {/* Tryb edycji komentarza */}
                               <input
                                 type="text"
                                 value={editingContent}
-                                onChange={(e) => setEditingContent(e.target.value)}
+                                onChange={(e) =>
+                                  setEditingContent(e.target.value)
+                                }
                               />
                               <Button
-                                onClick={() => handleSaveEditComment(post.id, comment.id)}
+                                onClick={() =>
+                                  handleSaveEditComment(post.id, comment.id)
+                                }
                               >
                                 Zapisz
                               </Button>
                             </>
                           ) : (
+                            // Wyświetlenie komentarza
                             <p>{comment.content}</p>
                           )}
-                          {comment.userId == userId && (
+
+                          {/* Jeśli komentarz należy do użytkownika, wyświetl opcje "Usuń" i "Edytuj" */}
+                          {comment.userId === Number(userId) && (
                             <>
-                            <Button
-                              style={{  marginRight: '8px', backgroundColor: '#931621', color: 'white' }}
-                              onClick={() => handleDeleteComment(post.id, comment.id)}
-                            >
-                              Usuń
-                            </Button>
-                             {editingComment !== comment.id && (
-                              <Button onClick={() => handleEditComment(comment)}>
-                                Edytuj
+                              <Button
+                                style={{
+                                  marginRight: "8px",
+                                  backgroundColor: "#931621",
+                                  color: "white",
+                                }}
+                                onClick={() =>
+                                  handleDeleteComment(post.id, comment.id)
+                                }
+                              >
+                                Usuń
                               </Button>
-                            )}
+                              {editingComment !== comment.id && (
+                                <Button
+                                  onClick={() => handleEditComment(comment)}
+                                >
+                                  Edytuj
+                                </Button>
+                              )}
                             </>
                           )}
                         </Comment>
                       ))
                     ) : (
-                      // Иначе, показываем только последний комментарий
+                      // Jeśli komentarze są ukryte, pokazujemy tylko ostatni komentarz
                       <Comment key={post.comments[post.comments.length - 1].id}>
-                        <strong>{post.comments[post.comments.length - 1].username}: </strong>
+                        <strong>
+                          {post.comments[post.comments.length - 1].username}:{" "}
+                        </strong>
                         <p>{post.comments[post.comments.length - 1].content}</p>
+                        {console.log(post.comments)}
                       </Comment>
                     )}
                   </div>
-                  
+
+                  {/* Przycisk do przełączania widoczności wszystkich komentarzy */}
                   <Button onClick={() => toggleComments(post.id)}>
-                    {showAllComments[post.id] ? 'Ukryj komentarze' : 'Pokaż wszystkie komentarze'}
+                    {showAllComments[post.id]
+                      ? "Ukryj komentarze"
+                      : "Pokaż wszystkie komentarze"}
                   </Button>
                 </div>
               ) : (
                 <p>Brak komentarzy</p>
               )}
-
-              
             </CommentsSection>
           </PostWrapper>
         ))

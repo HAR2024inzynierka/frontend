@@ -4,9 +4,10 @@ import { jwtDecode } from "jwt-decode";
 import VehicleCard from "./VehicleCard";
 import styled from "styled-components";
 import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css"; // Import stylów kalendarza
+import "react-calendar/dist/Calendar.css";
 
-// Styled-components
+//Stylizowane komponenty
+
 const ButtonContainer = styled.div`
   display: flex;
   gap: 10px;
@@ -159,7 +160,6 @@ const DynamicAddCarButton = styled(AddCarButton)`
   }
 `;
 
-// New styled component for "Back to Vehicle List" button
 const BackToListButton = styled.button`
   background-color: #01295f;
   color: white;
@@ -177,7 +177,6 @@ const BackToListButton = styled.button`
   }
 `;
 
-// New styled component for the card container that holds vehicles and the "Back to List" button
 const CardContainer = styled.div`
   background: #fff;
   border-radius: 8px;
@@ -186,35 +185,6 @@ const CardContainer = styled.div`
   margin-top: 20px;
 `;
 
-const ModalBackground = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-`;
-
-const ModalContent = styled.div`
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  max-width: 600px;
-  width: 100%;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-`;
-
-const AppointmentDetails = styled.div`
-  margin-top: 20px;
-  font-size: 16px;
-  color: #01295f;
-`;
-
-// Styled-components
 const TwoColumnLayout = styled.div`
   display: flex;
   justify-content: space-between;
@@ -233,12 +203,6 @@ const RightColumn = styled.div`
   align-items: center;
 `;
 
-const SectionTitle = styled.h3`
-  font-size: 20px;
-  color: #01295f;
-  margin-bottom: 10px;
-`;
-
 const StyledCalendar = styled(Calendar)`
   width: 100%; // Rozciągnij do pełnej szerokości kontenera
   max-width: 600px; // Maksymalna szerokość
@@ -246,13 +210,12 @@ const StyledCalendar = styled(Calendar)`
 `;
 
 function UserPage() {
-  const [records, setRecords] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState(null);
-
-  const [user, setUser] = useState(null);
-  const [cars, setCars] = useState([]);
+  // Stany dla różnych danych i funkcjonalności
+  const [records, setRecords] = useState([]); // Wizyty użytkownika
+  const [showModal, setShowModal] = useState(false); // Pokazywanie modalu z wizytami
+  const [selectedRecord, setSelectedRecord] = useState(null); // Wybrana wizyta
+  const [user, setUser] = useState(null); // Dane użytkownika
+  const [cars, setCars] = useState([]); // Lista pojazdów użytkownika
   const [newCar, setNewCar] = useState({
     brand: "",
     model: "",
@@ -261,34 +224,32 @@ function UserPage() {
     power: "",
     vin: "",
     productionYear: "",
-  });
-  const [showVehicles, setShowVehicles] = useState(false);
-  const [editingUser, setEditingUser] = useState(false);
+  }); // Dane nowego pojazdu
+  const [showVehicles, setShowVehicles] = useState(false); // Czy pokazywać pojazdy
+  const [editingUser, setEditingUser] = useState(false); // Tryb edycji użytkownika
   const [editedUser, setEditedUser] = useState({
     login: "",
     email: "",
     phoneNumber: "",
-  });
-  const [showForm, setShowForm] = useState(false);
-  const [addingNewCar, setAddingNewCar] = useState(true);
-  const [iscancel, setIsCancel] = useState(false);
-  const [error, setError] = useState(null);
-  const [editingCar, setEditingCar] = useState(null);
-  const [editedCar, setEditedCar] = useState({});
-  const [selectedVehicle, setSelectedVehicle] = useState(null);
-  const [appointments, setAppointments] = useState([]); // Przechowujemy wizyty
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  }); // Zmiany w danych użytkownika
+  const [showForm, setShowForm] = useState(false); // Formularz dodawania pojazdu
+  const [addingNewCar, setAddingNewCar] = useState(true); // Czy dodajemy nowy pojazd
+  const [iscancel, setIsCancel] = useState(false); // Anulowanie formularza
+  const [error, setError] = useState(null); // Obsługa błędów
+  const [editingCar, setEditingCar] = useState(null); // Edytowany pojazd
+  const [editedCar, setEditedCar] = useState({}); // Dane edytowanego pojazdu
+  const [selectedVehicle, setSelectedVehicle] = useState(null); // Wybrany pojazd
+  
+  const token = localStorage.getItem("token"); // Token JWT użytkownika
+  const userId = token ? jwtDecode(token).nameid : null; // Identyfikator użytkownika
 
-  const token = localStorage.getItem("token");
-  const userId = token ? jwtDecode(token).nameid : null;
-
+  // Pokazywanie/ukrywanie formularza
   const toggleForm = () => {
     setShowForm(!showForm);
     setIsCancel(!showForm); // Ustawiamy iscancel na true, jeśli formularz jest pokazany
   };
 
-  // Fetch user and vehicles data
+  // Pobieranie danych użytkownika i pojazdów
   useEffect(() => {
     if (!userId || !token) return;
 
@@ -296,12 +257,15 @@ function UserPage() {
       try {
         const [userResponse, carsResponse, recordsResponse] = await Promise.all(
           [
+            // Wysłanie żądania do API w celu pobrania danych użytkownika
             axios.get(`http://localhost:5109/api/User/${userId}`, {
               headers: { Authorization: `Bearer ${token}` },
             }),
+            // Wysłanie żądania do API w celu pobrania pojazdów użytkownika
             axios.get(`http://localhost:5109/api/User/vehicles`, {
               headers: { Authorization: `Bearer ${token}` },
             }),
+            // Wysłanie żądania do API w celu pobrania zapisów użytkownika
             axios.get(`http://localhost:5109/api/User/records`, {
               headers: { Authorization: `Bearer ${token}` },
             }), // Pobranie wizyt
@@ -329,67 +293,62 @@ function UserPage() {
     fetchUserData();
   }, [userId, token]);
 
+  // Daty wizyt do podświetlenia w kalendarzu
   const getHighlightedDates = () => {
-    // Массив уникальных строк дат для подсветки
     const highlightedDates = records
       .map((record) => {
         const termStartDate = new Date(record.term.startDate);
 
-        // Обнуляем время, чтобы сравнивать только дату
+        // Zerowanie czasu, aby porównać tylko datę
         termStartDate.setHours(0, 0, 0, 0);
 
-        // Возвращаем строку в формате 'YYYY-MM-DD'
+        // Zwracanie ciągu znaków w formacie 'YYYY-MM-DD'
         const formattedDate = termStartDate.toISOString().split("T")[0];
         return formattedDate;
       })
-      .filter((value, index, self) => self.indexOf(value) === index); // Убираем дубликаты
+      .filter((value, index, self) => self.indexOf(value) === index); // Usuwanie duplikatów
 
-    //console.log("Подсвечиваемые даты:", highlightedDates); // Логируем все уникальные даты
     return highlightedDates;
   };
 
+  // Kliknięcie na pojazd
   const handleVehicleClick = (car) => {
-    setSelectedVehicle(car); // Store the clicked vehicle's details
+    setSelectedVehicle(car);
   };
 
+  // Kliknięcie na datę w kalendarzu
   const handleDateClick = (date) => {
-    // Преобразуем выбранную дату в 'YYYY-MM-DD', игнорируя время
+    // Konwertuje wybraną datę na 'YYYY-MM-DD', ignorując godzinę.
     const clickedDate = new Date(date);
-    clickedDate.setHours(0, 0, 0, 0); // Обнуляем время
+    clickedDate.setHours(0, 0, 0, 0); // Zerowanie czasu
 
-    // Фильтруем записи, используя только дату из 'term.startDate' (сравниваем без учета времени)
+    // Filtrowanie rekordów przy użyciu tylko daty z 'term.startDate' (porównanie bez czasu)
     const recordsForDate = records.filter((record) => {
-      // Извлекаем дату из 'term.startDate'
+      // Pobieranie daty z 'term.startDate'
       const termStartDate = new Date(record.term.startDate);
-      termStartDate.setHours(0, 0, 0, 0); // Обнуляем время
-
-      // Сравниваем только дату (без учета времени)
+      termStartDate.setHours(0, 0, 0, 0); // Zerowanie czasu
       return termStartDate.getTime() === clickedDate.getTime();
     });
 
     if (recordsForDate.length > 0) {
-      setSelectedRecord(recordsForDate); // Сохраняем найденные записи
-      setShowModal(true); // Показываем модальное окно
+      setSelectedRecord(recordsForDate);
+      setShowModal(true);
     }
   };
 
+  // Zamknięcie modalu
   const closeModal = () => {
     setShowModal(false);
     setSelectedRecord(null);
   };
 
-  // Otwieranie modala
-  const openModal = () => {
-    setIsModalOpen(true);
-  };
-
-  // Handle car deletion
+  // Usunięcie pojazdu
   const handleCarDelete = async (carId) => {
     try {
+      // Wysłanie żądania do API w celu usunięcia pojazdu
       await axios.delete(`http://localhost:5109/api/user/vehicle/${carId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Update state directly to remove the car
       setCars((prevCars) => prevCars.filter((car) => car.id !== carId));
     } catch (error) {
       console.error(
@@ -399,11 +358,12 @@ function UserPage() {
     }
   };
 
-  // Handle car edit submission
+  // Edycja pojazdu
   const handleCarEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.put(
+      await axios.put(
+        // Wysłanie żądania do API w celu aktualizacji pojazdu
         `http://localhost:5109/api/user/vehicle/${editedCar.id}`,
         editedCar,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -414,7 +374,7 @@ function UserPage() {
           car.id === editedCar.id ? { ...car, ...editedCar } : car
         )
       );
-      setEditingCar(null); // Zakończ edycję
+      setEditingCar(null);
     } catch (error) {
       console.error(
         "Błąd przy edytowaniu pojazdu:",
@@ -423,25 +383,27 @@ function UserPage() {
     }
   };
 
-  // Validate form fields
+  // Walidacja formularza dodania pojazdu
   const validateForm = () => {
-    return Object.values(newCar).every((value) => value.trim() !== ""); // ensure no field is empty
+    return Object.values(newCar).every((value) => value.trim() !== ""); //upewnij się, że żadne pole nie jest puste
   };
 
-  // Handle user data edit submission
+  // Edycja danych użytkownika
   const handleUserEditSubmit = async (e) => {
     e.preventDefault();
     try {
-
-      await axios.put(
-        `http://localhost:5109/api/User/`,
-        editedUser,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const response = await axios.get(`http://localhost:5109/api/User/${userId}`, {
+      // Wysłanie żądania do API w celu aktualizacji danych użytkownika
+      await axios.put(`http://localhost:5109/api/User/`, editedUser, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      // Pobranie zaktualizowanych danych użytkownika
+      const response = await axios.get(
+        `http://localhost:5109/api/User/${userId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       setUser(response.data);
       setEditingUser(false);
@@ -456,40 +418,53 @@ function UserPage() {
     }
   };
 
+  //Powrót do listy pojazdów
   const handleBackToVehicleList = () => {
-    setSelectedVehicle(null); // Clear selected vehicle
-    setEditingCar(null); // Stop editing mode
+    setSelectedVehicle(null);
+    setEditingCar(null);
   };
 
-  const deleteRecord = async (id) =>{
-    try{
+  //Usunięcie zapisu użytkownika
+  const deleteRecord = async (id) => {
+    try {
+      // Wysłanie żądania do API w celu usunięcia zapisu o wizytach
       await axios.delete(`http://localhost:5109/api/User/records/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      //setRecords((prevRecords) => prevRecords.filter((record) => record.id !== id));
-
       setRecords((prevRecords) => {
+        // Filtrowanie poprzednich zapisów, aby usunąć ten, który ma podane id
         const updatedRecords = prevRecords.filter((record) => record.id !== id);
-        
-        // Если удалена последняя запись из выбранных для отображения в модальном окне
-        if (selectedRecord && selectedRecord.some((record) => record.id === id)) {
-          setSelectedRecord(updatedRecords.filter((record) => {
-            // Фильтруем все записи с тем же временем (например, даты)
-            const clickedDate = new Date(selectedRecord[0].term.startDate);
-            clickedDate.setHours(0, 0, 0, 0);
-            return new Date(record.term.startDate).setHours(0, 0, 0, 0) === clickedDate.getTime();
-          }));
+
+        // Jeśli zapis, który został usunięty, był częścią wybranych wizyt (wyświetlanych w oknie modalnym)
+        if (
+          selectedRecord &&
+          selectedRecord.some((record) => record.id === id)
+        ) {
+          // Filtrujemy pozostałe wizyty dla tej samej daty, aby zachować tylko te, które są związane z wybraną datą
+          setSelectedRecord(
+            updatedRecords.filter((record) => {
+              // Pobieramy datę terminu wybranej wizyty i ustawiamy godziny na 0, aby porównać tylko daty (bez czasu)
+              const clickedDate = new Date(selectedRecord[0].term.startDate);
+              clickedDate.setHours(0, 0, 0, 0); // Resetowanie godzin, minut, sekund
+              
+              // Porównujemy tylko datę (bez uwzględnienia godziny), aby sprawdzić, czy rekord ma tę samą datę
+              return (
+                new Date(record.term.startDate).setHours(0, 0, 0, 0) ===
+                clickedDate.getTime()
+              );
+            })
+          );
         }
-  
+
         return updatedRecords;
       });
     } catch (err) {
       setError("Nie udało się usunąć terminu");
     }
-  }
+  };
 
-  // Handle new car addition
+  // Dodawanie nowego pojazdu
   const handleCarAddSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) {
@@ -497,6 +472,7 @@ function UserPage() {
       return;
     }
     try {
+      // Wysłanie żądania do API w celu dodania pojazdu
       const response = await axios.post(
         `http://localhost:5109/api/user/vehicle`,
         newCar,
@@ -517,16 +493,21 @@ function UserPage() {
 
   return (
     <UserPageContainer>
+      {/* Jeśli użytkownik jest zalogowany, renderujemy całą stronę */}
       {user && (
         <>
+          {/* Górna sekcja z powitaniem użytkownika */}
           <TopSection>
             <WelcomeMessage>Witaj, {user.login}!</WelcomeMessage>
           </TopSection>
 
+          {/* Układ z dwoma kolumnami */}
           <TwoColumnLayout>
             <LeftColumn>
+              {/* Sekcja edycji użytkownika */}
               {editingUser ? (
                 <FormContainer>
+                  {/* Formulary do edycji loginu, emaila i numeru telefonu */}
                   <form onSubmit={handleUserEditSubmit}>
                     <FormInput
                       type="text"
@@ -548,7 +529,10 @@ function UserPage() {
                       type="tel"
                       value={editedUser.phoneNumber}
                       onChange={(e) =>
-                        setEditedUser({ ...editedUser, phoneNumber: e.target.value })
+                        setEditedUser({
+                          ...editedUser,
+                          phoneNumber: e.target.value,
+                        })
                       }
                       placeholder="Telefon"
                     />
@@ -561,6 +545,7 @@ function UserPage() {
                 </FormContainer>
               ) : (
                 <UserInfoCard>
+                  {/* Wyświetlanie danych użytkownika, gdy nie jest w trybie edycji */}
                   <UserInfoLabel>
                     <strong>Login: </strong>
                     <UserInfoValue>{user.login}</UserInfoValue>
@@ -579,6 +564,7 @@ function UserPage() {
                 </UserInfoCard>
               )}
 
+              {/* Przycisk do dodania pojazdu */}
               <ButtonContainer>
                 <DynamicAddCarButton
                   onClick={toggleForm} // Zmieniamy przycisk po kliknięciu
@@ -586,12 +572,17 @@ function UserPage() {
                 >
                   {showForm ? "Anuluj" : "Dodaj pojazd"}
                 </DynamicAddCarButton>
+
+                {/* Przycisk do pokazania/ukrywania pojazdów */}
                 <AddCarButton onClick={() => setShowVehicles(!showVehicles)}>
                   {showVehicles ? "Ukryj pojazdy" : "Pokaż pojazdy"}
                 </AddCarButton>
               </ButtonContainer>
+
+              {/* Formularz do dodawania/edycji pojazdów */}
               {showForm && (
                 <FormContainer>
+                  {/* Formularz do wprowadzenia danych pojazdu */}
                   <form
                     onSubmit={
                       addingNewCar ? handleCarAddSubmit : handleCarEditSubmit
@@ -664,16 +655,17 @@ function UserPage() {
                 </FormContainer>
               )}
 
+              {/* Wyświetlanie pojazdów */}
               {showVehicles && (
                 <CarsContainer>
                   {cars.map((car) => (
                     <VehicleCard
-                      key={car.id} // Pass the unique identifier as the key prop
+                      key={car.id}
                       vehicle={car}
-                      onDelete={handleCarDelete} // Handle vehicle deletion here
+                      onDelete={handleCarDelete}
                       onEdit={(car) => {
                         setEditingCar(car);
-                        setEditedCar({ ...car }); // Initialize edit form with car data
+                        setEditedCar({ ...car });
                       }}
                       onClick={() => handleVehicleClick(car)}
                     />
@@ -681,6 +673,7 @@ function UserPage() {
                 </CarsContainer>
               )}
 
+              {/* Wyświetlanie szczegółów wybranego pojazdu */}
               {selectedVehicle && (
                 <CardContainer>
                   <div>
@@ -717,6 +710,7 @@ function UserPage() {
                 </CardContainer>
               )}
 
+              {/* Formularz do edycji pojazdu */}
               {editingCar && (
                 <FormContainer>
                   <form onSubmit={handleCarEditSubmit}>
@@ -794,14 +788,13 @@ function UserPage() {
             <RightColumn>
               <WelcomeMessage>Twoje wizyty:</WelcomeMessage>
 
-              {/* Render the calendar and appointments */}
+              {/* Kalendarz */}
               <CalendarWrapper>
                 <StyledCalendar
                   onClickDay={handleDateClick}
                   tileClassName={({ date }) => {
                     const highlightedDates = getHighlightedDates();
-                    const formattedDate = date.toISOString().split("T")[0]; // Преобразуем текущую дату в 'YYYY-MM-DD'
-                    //console.log("Дата на календаре:", formattedDate); // Логируем дату на календаре
+                    const formattedDate = date.toISOString().split("T")[0]; // Prezentacja daty w formacie 'YYYY-MM-DD'
                     return highlightedDates.includes(formattedDate)
                       ? "highlight"
                       : null;
@@ -809,7 +802,7 @@ function UserPage() {
                 />
               </CalendarWrapper>
 
-              {/* Модальное окно с информацией о записи */}
+              {/* Modal z informacjami o zapisie */}
               {showModal && selectedRecord && selectedRecord.length > 0 && (
                 <div className="modal">
                   <div className="modal-content">
@@ -821,8 +814,8 @@ function UserPage() {
                           {new Date(record.term.startDate).toLocaleString()}
                         </p>
                         <p>
-                          <strong>Pojazd:</strong>{" "}
-                          {record.vehicle.brand} {record.vehicle.model}
+                          <strong>Pojazd:</strong> {record.vehicle.brand}{" "}
+                          {record.vehicle.model}
                         </p>
                         <p>
                           <strong>Usługa:</strong> {record.favour.typeName}
@@ -844,9 +837,8 @@ function UserPage() {
                           Anuluj
                         </Button>
                       </div>
-                      
                     ))}
-                    <br/>
+                    <br />
                     <Button
                       onClick={closeModal}
                       style={{ backgroundColor: "#01295f" }}

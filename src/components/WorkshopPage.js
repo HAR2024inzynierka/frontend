@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import axios from 'axios';
-import styled from 'styled-components';
+import React, { useEffect, useState, useCallback } from "react";
+import { useParams } from "react-router-dom";
+import axios from "axios";
+import styled from "styled-components";
 import "react-datepicker/dist/react-datepicker.css";
-import DatePicker from 'react-datepicker';
-import { jwtDecode } from 'jwt-decode';
-import Posts from './Posts';
+import DatePicker from "react-datepicker";
+import Posts from "./Posts";
 
+//Stylizowane komponenty
 
 const Card = styled.div`
   background: #fff;
@@ -23,7 +23,8 @@ const Section = styled.div`
     margin-bottom: 10px;
   }
 
-  select, input {
+  select,
+  input {
     width: 100%;
     padding: 10px;
     font-size: 16px;
@@ -32,7 +33,7 @@ const Section = styled.div`
     outline: none;
 
     &:focus {
-      border-color: #00509E;
+      border-color: #00509e;
       box-shadow: 0 0 5px rgba(0, 80, 158, 0.5);
     }
   }
@@ -40,7 +41,7 @@ const Section = styled.div`
 
 const CalendarWrapper = styled.div`
   margin-bottom: 20px;
-  
+
   .react-datepicker__input-container {
     width: 100%;
   }
@@ -48,7 +49,7 @@ const CalendarWrapper = styled.div`
 
 // // Define styled-components for your UI
 const Button = styled.button`
-  background-color: #01295F;
+  background-color: #01295f;
   color: white;
   padding: 15px;
   border: none;
@@ -59,7 +60,7 @@ const Button = styled.button`
   transition: background-color 0.3s ease;
 
   &:hover {
-    background-color: #00509E;
+    background-color: #00509e;
   }
 
   &:disabled {
@@ -110,84 +111,98 @@ const Info = styled.p`
 `;
 
 const WorkshopPage = () => {
-  const [services, setServices] = useState([]);
-  const [vehicles, setVehicles] = useState([]);
-  const [date, setDate] = useState(new Date());
-  const [selectedTime, setSelectedTime] = useState('');
-  const [availableHours, setAvailableHours] = useState([]);
-  const [selectedVehicle, setSelectedVehicle] = useState('');
-  const [selectedService, setSelectedService] = useState('');
-  const [workshop, setWorkshop] = useState(null);
+  const [services, setServices] = useState([]); // Lista dostępnych usług
+  const [vehicles, setVehicles] = useState([]); // Lista dostępnych pojazdów
+  const [date, setDate] = useState(new Date()); // Wybrana data
+  const [selectedTime, setSelectedTime] = useState(""); // Wybrana godzina
+  const [availableHours, setAvailableHours] = useState([]); // Dostępne godziny
+  const [selectedVehicle, setSelectedVehicle] = useState(""); // Wybrany pojazd
+  const [selectedService, setSelectedService] = useState(""); // Wybrana usługa
+  const [workshop, setWorkshop] = useState(null); // Dane warsztatu
 
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token"); // Pobieranie tokenu z localStorage
 
-  const { id } = useParams();
+  const { id } = useParams(); // Pobieranie id warsztatu z URL
+
+  // Funkcja do pobierania dostępnych godzin na podstawie wybranej daty
+  const fetchAvailableHours = useCallback(
+    async (selectedDate) => {
+      if (!workshop) return;
+
+      try {
+        // Wysłanie żądania do API w celu pobrania terminów danego warsztatu
+        const response = await axios.get(
+          `http://localhost:5109/api/AutoRepairShop/${workshop.id}/terms`
+        );
+        // Filtrujemy dostępne godziny w zależności od wybranej daty
+        const filteredHours = response.data.filter((hour) => {
+          const hourDate = new Date(hour.startDate).toISOString().split("T")[0];
+          const selectedDateString = selectedDate.toISOString().split("T")[0];
+          return hourDate === selectedDateString;
+        });
+
+        setAvailableHours(filteredHours);
+      } catch (error) {
+        console.error("Błąd podczas pobierania dostępnych godzin:", error);
+      }
+    },
+    [workshop]
+  );
 
   useEffect(() => {
-      const fetchWorkshop = async () => {
-          try {
-              const response = await axios.get(`http://localhost:5109/api/AutoRepairShop/${id}`);
-              setWorkshop(response.data);
-          } catch (error) {
-              console.error('Error fetching workshop details:', error);
-          }
-      };
-      const fetchServices = async () => {
-        try {
-            const response = await axios.get(`http://localhost:5109/api/AutoRepairShop/${id}/favours`); // Замените на правильный URL для загрузки услуг
-            setServices(response.data);
-        } catch (error) {
-            console.error('Error fetching services:', error);
-        }
-  };
+    const fetchWorkshop = async () => {
+      try {
+        // Wysłanie żądania do API w celu pobrania danych warsztatu
+        const response = await axios.get(
+          `http://localhost:5109/api/AutoRepairShop/${id}`
+        );
+        setWorkshop(response.data);
+      } catch (error) {
+        console.error("Błąd podczas pobierania danych warsztatu:", error);
+      }
+    };
+    const fetchServices = async () => {
+      try {
+        // Wysłanie żądania do API w celu pobrania usług danego warsztatu
+        const response = await axios.get(
+          `http://localhost:5109/api/AutoRepairShop/${id}/favours`
+        );
+        setServices(response.data);
+      } catch (error) {
+        console.error("Błąd podczas pobierania usług:", error);
+      }
+    };
 
     const fetchVehicles = async () => {
-        try {
-            const response = await axios.get(`http://localhost:5109/api/User/vehicles`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setVehicles(response.data);
-        } catch (error) {
-            console.error('Error fetching vehicles:', error);
-        }
+      try {
+        // Wysłanie żądania do API w celu pobrania pojazdów użytkownika
+        const response = await axios.get(
+          `http://localhost:5109/api/User/vehicles`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setVehicles(response.data);
+      } catch (error) {
+        console.error("Błąd podczas pobierania pojazdów:", error);
+      }
     };
-    
 
-    fetchAvailableHours();
     fetchWorkshop();
     fetchServices();
     if (token) {
-        fetchVehicles();
+      fetchVehicles();
     }
   }, [id, token]);
 
   useEffect(() => {
     if (workshop) {
-      // Вызов функции получения доступных часов для текущей даты
+      // Wywołujemy funkcję pobierania dostępnych godzin po załadowaniu danych warsztatu
       fetchAvailableHours(date);
     }
-  }, [workshop, date]);
-  
-  const fetchAvailableHours = async (selectedDate) => {
-    if (!workshop) return;
+  }, [workshop, date, fetchAvailableHours]);
 
-    try {
-      const response = await axios.get(
-        `http://localhost:5109/api/AutoRepairShop/${workshop.id}/terms`
-      );
-      // Фильтруем часы, чтобы они соответствовали выбранной дате
-      const filteredHours = response.data.filter((hour) => {
-        const hourDate = new Date(hour.startDate).toISOString().split('T')[0];
-        const selectedDateString = selectedDate.toISOString().split('T')[0];
-        return hourDate === selectedDateString;
-    });
-
-      setAvailableHours(filteredHours);
-    } catch (error) {
-      console.error('Error fetching available hours:', error);
-    }
-  };
-
+  // Funkcja do obsługi zmiany daty
   const handleDateChange = async (selectedDate) => {
     setDate(selectedDate);
     if (workshop) {
@@ -195,40 +210,43 @@ const WorkshopPage = () => {
     }
   };
 
+  // Funkcja do obsługi wysłania formularza
   const handleSubmit = async () => {
     if (!selectedTime || !selectedVehicle || !selectedService || !workshop) {
-      alert('Proszę wypełnić wszystkie pola.');
+      alert("Proszę wypełnić wszystkie pola.");
       return;
     }
 
-    const selectedHour = availableHours.find((hour) => String(hour.id) === String(selectedTime));
+    const selectedHour = availableHours.find((hour) => 
+      String(hour.id) === String(selectedTime)
+    );
     if (!selectedHour) {
-      alert('Nieprawidłowa godzina');
+      alert("Nieprawidłowa godzina");
       return;
     }
 
     const selectedDateTime = new Date(selectedHour.startDate);
     const recordDate = selectedDateTime.toISOString();
-    const completionDate = selectedHour.endDate;
 
     try {
+      // Wysłanie żądania do API w celu rejestracji zapisu o wizycie
       await axios.post(
-        'http://localhost:5109/api/AutoRepairShop/add-record', 
+        "http://localhost:5109/api/AutoRepairShop/add-record",
         {
-        vehicleId: selectedVehicle,
-        favourId: selectedService,
-        termId: selectedTime,
-        recordDate: recordDate,
-        workshopId: workshop.id,
+          vehicleId: selectedVehicle,
+          favourId: selectedService,
+          termId: selectedTime,
+          recordDate: recordDate,
+          workshopId: workshop.id,
         },
         {
-          headers: {Authorization: `Bearer ${token}`},
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
-      alert('Wizyta została umówiona!');
+      alert("Wizyta została umówiona!");
     } catch (error) {
-      console.error('Error scheduling appointment:', error);
-      alert('Nie udało się umówić wizyty.');
+      console.error("Error scheduling appointment:", error);
+      alert("Nie udało się umówić wizyty.");
     }
   };
 
@@ -238,9 +256,9 @@ const WorkshopPage = () => {
 
   return (
     <Container>
-    <ContentWrapper>
+      <ContentWrapper>
         <WorkshopInfo>
-          {/* Данные мастерской слева */}
+          {/* Wyświetlanie danych warsztatu */}
           <Title>{workshop.name}</Title>
           <Info>Address: {workshop.address}</Info>
           <Info>Email: {workshop.email}</Info>
@@ -248,7 +266,7 @@ const WorkshopPage = () => {
         </WorkshopInfo>
 
         <FormWrapper>
-          {/* Форма справа */}
+          {/* Formularz umawiania wizyty */}
           <Card>
             <Title>Umów wizytę</Title>
             <CalendarWrapper>
@@ -259,13 +277,16 @@ const WorkshopPage = () => {
             </CalendarWrapper>
             <Section>
               <h3>Wybierz godzinę</h3>
-              <select value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)}>
+              <select
+                value={selectedTime}
+                onChange={(e) => setSelectedTime(e.target.value)}
+              >
                 <option value="">Wybierz godzinę</option>
                 {availableHours.map((hour) => (
                   <option key={hour.id} value={hour.id}>
-                    {new Date(hour.startDate).toLocaleTimeString('pl-PL', {
-                      hour: '2-digit',
-                      minute: '2-digit',
+                    {new Date(hour.startDate).toLocaleTimeString("pl-PL", {
+                      hour: "2-digit",
+                      minute: "2-digit",
                     })}
                   </option>
                 ))}
@@ -273,7 +294,10 @@ const WorkshopPage = () => {
             </Section>
             <Section>
               <h3>Wybierz usługę</h3>
-              <select value={selectedService} onChange={(e) => setSelectedService(e.target.value)}>
+              <select
+                value={selectedService}
+                onChange={(e) => setSelectedService(e.target.value)}
+              >
                 <option value="">Wybierz usługę</option>
                 {services.map((service) => (
                   <option key={service.id} value={service.id}>
@@ -284,7 +308,10 @@ const WorkshopPage = () => {
             </Section>
             <Section>
               <h3>Wybierz pojazd</h3>
-              <select value={selectedVehicle} onChange={(e) => setSelectedVehicle(e.target.value)}>
+              <select
+                value={selectedVehicle}
+                onChange={(e) => setSelectedVehicle(e.target.value)}
+              >
                 <option value="">Wybierz pojazd</option>
                 {vehicles.map((vehicle) => (
                   <option key={vehicle.id} value={vehicle.id}>
@@ -298,10 +325,10 @@ const WorkshopPage = () => {
         </FormWrapper>
       </ContentWrapper>
 
-<div style={{ width: '100%', maxWidth: '1200px' }}>
-<Posts workshopId={workshop.id} />
-</div>
-</Container>
+      <div style={{ width: "100%", maxWidth: "1200px" }}>
+        <Posts workshopId={workshop.id} />
+      </div>
+    </Container>
   );
 };
 
